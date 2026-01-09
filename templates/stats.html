@@ -5,7 +5,26 @@
         max-width: 500px;
         margin: 0 auto;
         padding: 20px;
-        padding-top: 80px;
+        padding-top: 20px;
+    }
+    
+    /* Иконка сверху */
+    .logo-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
     }
     
     /* Карточка периода */
@@ -325,6 +344,10 @@
             padding-top: 40px;
         }
         
+        .logo-icon {
+            margin-top: 0;
+        }
+        
         .add-button {
             bottom: 30px;
         }
@@ -345,6 +368,11 @@
 </style>
 
 <div class="stats-container">
+    <!-- Иконка -->
+    <div class="logo-icon">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </div>
+    
     <!-- Выбор периода -->
     <div class="period-selector">
         <form method="GET">
