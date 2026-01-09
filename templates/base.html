@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Учёт продаж</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+        nav { background: #333; padding: 15px; margin-bottom: 30px; border-radius: 8px; }
+        nav a { color: white; margin-right: 30px; font-size: 18px; text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f0f0f0; }
+        th a { color: #333; text-decoration: none; }
+        th a:hover { text-decoration: underline; }
+        img { max-height: 100px; border-radius: 4px; }
+        .flash { padding: 15px; background: #d4edda; color: #155724; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="{{ url_for('dashboard') }}">Главная</a>
+    <a href="{{ url_for('all_sales_summary') }}">Все продажи</a>  <!-- НОВАЯ ССЫЛКА -->
+    <a href="{{ url_for('sales') }}">Подробнее</a>
+    <a href="{{ url_for('add_sale') }}">Добавить продажу</a>
+    <a href="{{ url_for('stats') }}">Расходы</a>
+</nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</body>
+</html>

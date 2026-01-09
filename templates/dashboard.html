@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <!-- Выбор периода -->
+    <div style="text-align: center; margin-bottom: 30px;">
+        <form method="GET" style="display: inline-block;">
+            <select name="period_type" onchange="toggleCustom(this.value)">
+                <option value="current_month" {% if period_type == 'current_month' %}selected{% endif %}>Месяц</option>
+                <option value="custom" {% if period_type == 'custom' %}selected{% endif %}>Произвольный период</option>
+            </select>
+
+            <div id="month-select" style="display: inline-block; margin-left: 10px;">
+                <select name="month">
+                    {% for m in range(1,13) %}
+                        <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                            {{ ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][m-1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select name="year">
+                    {% for y in all_years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="custom-dates" style="display: none; margin-left: 10px;">
+                <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                —
+                <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            </div>
+
+            <button type="submit" style="margin-left: 10px; padding: 8px 16px;">Применить</button>
+        </form>
+    </div>
+
+    <!-- Заголовок периода -->
+    <div style="text-align: center; margin-bottom: 40px;">
+        <div style="display: inline-block; background: #f0f0f0; padding: 10px 30px; border-radius: 30px; font-size: 18px;">
+            {{ period_label }}
+        </div>
+    </div>
+
+    <!-- Карточки -->
+    <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 50px;">
+        <div style="background: white; padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
+            <h2 style="font-size: 48px; margin: 0;">{{ count_sales }}</h2>
+            <p style="color: #666; margin: 10px 0 0;">Реализовано</p>
+        </div>
+
+        <div style="background: white; padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
+            <h2 style="font-size: 48px; margin: 0; color: #2e8b57;">+{{ "%.2f"|format(gross_income) }}$</h2>
+            <p style="color: #666; margin: 10px 0 0;">Доход</p>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 60px;">
+        <div style="display: inline-block; background: #444; color: white; padding: 25px 60px; border-radius: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);">
+            <h2 style="font-size: 52px; margin: 0;">+{{ "%.2f"|format(net_profit) }}$</h2>
+            <p style="margin: 10px 0 0; opacity: 0.9;">Прибыль с вычетом расходов</p>
+        </div>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="{{ url_for('sales') }}" style="display: inline-block; background: #d4a574; color: white; padding: 15px 50px; border-radius: 30px; font-size: 20px; text-decoration: none;">
+            Подробнее
+        </a>
+    </div>
+
+    <script>
+        function toggleCustom(val) {
+            document.getElementById('month-select').style.display = val === 'current_month' ? 'inline-block' : 'none';
+            document.getElementById('custom-dates').style.display = val === 'custom' ? 'inline-block' : 'none';
+        }
+        // При загрузке страницы правильно показать/скрыть
+        toggleCustom('{{ period_type }}');
+    </script>
+{% endblock %}

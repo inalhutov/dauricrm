@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Подробнее</h1>
+    <h2>Общая чистая прибыль: <strong>{{ total_profit }} $.</strong></h2>
+
+    <!-- Фильтр по городу -->
+    <div style="margin-bottom: 20px;">
+        <form method="GET" style="display: inline;">
+            <label><strong>Город:</strong>
+                <select name="city" onchange="this.form.submit()">
+                    <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
+                    {% for city in all_cities %}
+                        <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <input type="hidden" name="sort" value="{{ sort }}">
+        </form>
+
+        {% if city_filter != 'all' %}
+            <small style="margin-left: 20px;">
+                Фильтр: <strong>{{ city_filter }}</strong>
+                <a href="{{ url_for('index', sort=sort, city='all') }}" style="color: #666;">[сбросить]</a>
+            </small>
+        {% endif %}
+    </div>
+
+    <table>
+        <tr>
+            <th>Фото</th>
+            <th>Наименование</th>
+            <th>Покупка</th>
+            <th>Продажа</th>
+            <th>Расходы</th>                  <!-- НОВАЯ КОЛОНКА -->
+            <th>Прибыль</th>
+            <th>Город</th>
+            <th>Дата</th>
+            <th>Сотрудник</th>
+            <th>Действия</th>
+        </tr>
+        {% for s in sales %}
+        <tr>
+            <td>
+                {% if s.photo %}
+                    <img src="{{ url_for('uploaded_file', filename=s.photo) }}" alt="фото" style="max-height: 100px; max-width: 150px;">
+                {% else %}
+                    Нет фото
+                {% endif %}
+            </td>
+            <td>{{ s.product_name }}</td>
+            <td>{{ "%.2f"|format(s.buy_price) }}</td>
+            <td>{{ "%.2f"|format(s.sell_price) }}</td>
+
+            <!-- Колонка с расходами -->
+            <td>
+                {% if s.expenses %}
+                    <details>
+                        <summary style="cursor: pointer; color: #0066cc;">
+                            {{ "%.2f"|format(s.expenses|sum(attribute='amount')) }} $ ({{ s.expenses|length }})
+                        </summary>
+                        <ul style="margin: 5px 0 0 20px; padding-left: 0; list-style: none;">
+                            {% for exp in s.expenses %}
+                                <li>{{ exp.expense_type.name }}: {{ "%.2f"|format(exp.amount) }} $</li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                {% else %}
+                    0.00 $
+                {% endif %}
+            </td>
+
+            <td><strong>{{ "%.2f"|format(s.profit) }}</strong></td>
+            <td>{{ s.city.name }}</td>
+            <td>{{ s.date.strftime('%d.%m.%Y') }}</td>
+            <td>{{ s.employee.name }}</td>
+            <td>
+                <a href="{{ url_for('edit_sale', sale_id=s.id) }}" style="color: blue; margin-right: 15px;">Изменить</a>
+
+                <form style="display: inline;" method="POST" action="{{ url_for('delete_sale', sale_id=s.id) }}"
+                      onsubmit="return confirm('Точно удалить эту продажу?');">
+                    <button type="submit" style="background:none; border:none; color:red; cursor:pointer; padding:0;">
+                        Удалить
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">
+            {% if city_filter != 'all' %}
+                В городе <strong>{{ city_filter }}</strong> пока нет продаж.
+            {% else %}
+                Пока нет продаж вообще.
+            {% endif %}
+            <a href="{{ url_for('add_sale') }}">Добавьте первую!</a>
+        </td></tr>
+        {% endfor %}
+    </table>
+{% endblock %}

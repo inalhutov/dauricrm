@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Редактировать продажу</h1>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <p><label>Фото изделия:<br> 
+            <input type="file" name="photo" accept="image/*">
+            {% if sale.photo %}
+                <br><small>Текущее фото:</small><br>
+                <img src="{{ url_for('uploaded_file', filename=sale.photo) }}" style="max-height: 200px; margin-top: 10px;">
+            {% endif %}
+        </label></p>
+        
+        <p><label>Наименование:<br> 
+            <input type="text" name="product_name" value="{{ sale.product_name }}" required style="width:300px;">
+        </label></p>
+        
+        <p><label>Куплено за:<br> 
+            <input type="number" step="0.01" name="buy_price" value="{{ sale.buy_price }}" required>
+        </label></p>
+        
+        <p><label>Продано за:<br> 
+            <input type="number" step="0.01" name="sell_price" value="{{ sale.sell_price }}" required>
+        </label></p>
+        
+        <p><label>Город продажи:<br> 
+            <select name="city_id" required>
+                {% for city in cities %}
+                    <option value="{{ city.id }}" {% if city.id == sale.city_id %}selected{% endif %}>
+                        {{ city.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label></p>
+
+        <p><label>Ответственный сотрудник:<br>
+            <select name="employee_id" required>
+                {% for employee in employees %}
+                    <option value="{{ employee.id }}" {% if employee.id == sale.employee_id %}selected{% endif %}>
+                        {{ employee.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label></p>
+
+        <p><label>Дата продажи:<br>
+            <input type="date" name="date" value="{{ sale.date.strftime('%Y-%m-%d') }}">
+        </label> (оставьте пустым для сегодня)</p>
+
+        <h3>Расходы</h3>
+        <div id="expenses-container">
+            {% for expense in sale.expenses %}
+                <div class="expense-row" style="margin-bottom: 10px;">
+                    <select name="expense_type_id">
+                        <option value="">— Выберите тип —</option>
+                        {% for et in expense_types %}
+                            <option value="{{ et.id }}" {% if et.id == expense.expense_type_id %}selected{% endif %}>
+                                {{ et.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" step="0.01" name="expense_amount" value="{{ expense.amount }}" placeholder="Сумма" required>
+                    <button type="button" onclick="removeExpense(this)">Удалить</button>
+                </div>
+            {% else %}
+                <!-- Если расходов нет — добавляем одну пустую строку -->
+                <div class="expense-row" style="margin-bottom: 10px;">
+                    <select name="expense_type_id">
+                        <option value="">— Выберите тип —</option>
+                        {% for et in expense_types %}
+                            <option value="{{ et.id }}">{{ et.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" step="0.01" name="expense_amount" placeholder="Сумма">
+                    <button type="button" onclick="removeExpense(this)">Удалить</button>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" onclick="addExpense()">Добавить расход</button>
+
+        <p style="margin-top: 30px;">
+            <input type="submit" value="Сохранить изменения"
+                   style="font-size:18px; padding:10px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">
+            &nbsp;
+            <a href="{{ url_for('sales') }}" style="font-size:18px; text-decoration:none; color:#333;">Отмена</a>
+        </p>
+    </form>
+
+    <!-- Блоки добавления справочников (как в add_sale) -->
+    <hr style="margin: 40px 0;">
+
+    <h3>Добавить новый город</h3>
+    <form method="POST" action="{{ url_for('add_city') }}">
+        <input type="text" name="name" required placeholder="Название города">
+        <input type="submit" value="Добавить город">
+    </form>
+
+    <h3>Добавить новый тип расхода</h3>
+    <form method="POST" action="{{ url_for('add_expense_type') }}">
+        <input type="text" name="name" required placeholder="Название типа">
+        <input type="submit" value="Добавить тип расхода">
+    </form>
+
+    <h3>Добавить нового сотрудника</h3>
+    <form method="POST" action="{{ url_for('add_employee') }}">
+        <input type="text" name="name" required placeholder="Имя сотрудника">
+        <input type="submit" value="Добавить сотрудника">
+    </form>
+
+    <script>
+        function addExpense() {
+            const container = document.getElementById('expenses-container');
+            const row = document.createElement('div');
+            row.className = 'expense-row';
+            row.style.marginBottom = '10px';
+            row.innerHTML = `
+                <select name="expense_type_id">
+                    <option value="">— Выберите тип —</option>
+                    {% for et in expense_types %}
+                        <option value="{{ et.id }}">{{ et.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="number" step="0.01" name="expense_amount" placeholder="Сумма">
+                <button type="button" onclick="removeExpense(this)">Удалить</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeExpense(button) {
+            button.parentElement.remove();
+        }
+    </script>
+{% endblock %}

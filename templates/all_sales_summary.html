@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align: center; margin-bottom: 40px; color: #333;">Все продажи</h1>
+
+<!-- Фильтры -->
+<div style="text-align: center; margin-bottom: 30px;">
+    <form method="GET" style="display: inline-block; background: #f0f0f0; padding: 15px 25px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <div style="display: inline-block; margin-right: 20px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Год</label>
+            <select name="year" onchange="this.form.submit()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ccc; min-width: 120px;">
+                <option value="all">Все годы</option>
+                {% for year in all_years %}
+                    <option value="{{ year }}" {% if selected_year == year|string %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: inline-block; margin-right: 20px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Город</label>
+            <select name="city" onchange="this.form.submit()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ccc; min-width: 120px;">
+                <option value="all">Все города</option>
+                {% for city in all_cities %}
+                    <option value="{{ city }}" {% if selected_city == city %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+<!-- Контейнер для карточек -->
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 30px;">
+    {% for year, months in summary_data.items()|sort(reverse=true) %}
+        {% for month_num, month_data in months.items()|sort(reverse=true) %}
+            {% for city_name, city_data in month_data.cities.items()|sort %}
+            <div style="width: 300px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <!-- Заголовок месяца и города -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px;">{{ month_data.month_name }} {{ year }}</h3>
+                    <div style="font-size: 14px; opacity: 0.9;">Город: {{ city_name }}</div>
+                </div>
+
+                <!-- Содержимое карточки -->
+                <div style="padding: 25px;">
+                    <!-- Количество продаж -->
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Реализовано</div>
+                        <div style="font-size: 42px; font-weight: bold; color: #333;">{{ city_data.count }}</div>
+                    </div>
+
+                    <!-- Прибыль -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Прибыль</div>
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <!-- Грязная прибыль -->
+                            <div>
+
+                                <div style="font-size: 22px; font-weight: bold; color: #28a745;">
+                                    +{{ "%.0f"|format(city_data.gross_profit) }}$
+                                </div>
+                            </div>
+
+                            <!-- Чистая прибыль -->
+                            <div>
+                                <div style="font-size: 12px; color: #888; margin-bottom: 3px;">Чистая прибыль</div>
+                                <div style="font-size: 28px; font-weight: bold; color: #17a2b8;">
+                                    +{{ "%.0f"|format(city_data.net_profit) }}$
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Дополнительная информация (скрытая по умолчанию) -->
+                    <details style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                        <summary style="cursor: pointer; color: #666; font-size: 14px; text-align: center;">
+                            Подробнее
+                        </summary>
+                        <div style="margin-top: 15px; font-size: 13px; color: #555;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>Закупка:</span>
+                                <span style="font-weight: bold;">{{ "%.0f"|format(city_data.total_buy) }}$</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>Продажа:</span>
+                                <span style="font-weight: bold;">{{ "%.0f"|format(city_data.total_sell) }}$</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>Расходы:</span>
+                                <span style="color: #dc3545; font-weight: bold;">{{ "%.0f"|format(city_data.total_expenses) }}$</span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    {% else %}
+    <div style="width: 100%; text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 10px;">
+        <div style="font-size: 24px; color: #666; margin-bottom: 20px;">😕</div>
+        <p style="font-size: 18px; color: #666; margin-bottom: 20px;">Нет данных для отображения</p>
+        {% if selected_year != 'all' or selected_city != 'all' %}
+        <a href="{{ url_for('all_sales_summary') }}" style="display: inline-block; background: #667eea; color: white; padding: 10px 25px; border-radius: 5px; text-decoration: none;">
+            Показать все продажи
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Статистика внизу -->
+
+<style>
+    /* Анимация при наведении на карточку */
+    .card-hover {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Стиль для details/summary */
+    details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details[open] summary {
+        margin-bottom: 10px;
+    }
+</style>
+
+<script>
+    // Добавляем класс для анимации всем карточкам
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('div[style*="width: 300px; background: white;"]');
+        cards.forEach(card => {
+            card.className = 'card-hover';
+        });
+    });
+</script>
+{% endblock %}
