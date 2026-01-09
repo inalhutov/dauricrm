@@ -1,133 +1,789 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Редактировать продажу</h1>
+<style>
+    .add-sale-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 20px;
+    }
     
-    <form method="POST" enctype="multipart/form-data">
-        <p><label>Фото изделия:<br> 
-            <input type="file" name="photo" accept="image/*">
-            {% if sale.photo %}
-                <br><small>Текущее фото:</small><br>
-                <img src="{{ url_for('uploaded_file', filename=sale.photo) }}" style="max-height: 200px; margin-top: 10px;">
-            {% endif %}
-        </label></p>
-        
-        <p><label>Наименование:<br> 
-            <input type="text" name="product_name" value="{{ sale.product_name }}" required style="width:300px;">
-        </label></p>
-        
-        <p><label>Куплено за:<br> 
-            <input type="number" step="0.01" name="buy_price" value="{{ sale.buy_price }}" required>
-        </label></p>
-        
-        <p><label>Продано за:<br> 
-            <input type="number" step="0.01" name="sell_price" value="{{ sale.sell_price }}" required>
-        </label></p>
-        
-        <p><label>Город продажи:<br> 
-            <select name="city_id" required>
-                {% for city in cities %}
-                    <option value="{{ city.id }}" {% if city.id == sale.city_id %}selected{% endif %}>
-                        {{ city.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </label></p>
+    /* Логотип */
+    .logo-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+    }
+    
+    .page-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 30px;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        display: inline-block;
+        width: auto;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Секция фотографии */
+    .photo-section {
+        margin-bottom: 25px;
+    }
+    
+    .photo-label {
+        font-size: 26px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        text-align: center;
+    }
+    
+    .photo-upload-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 0;
+        text-align: center;
+        cursor: pointer;
+        border: 2px dashed transparent;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .photo-upload-card:hover {
+        border-color: #B58358;
+    }
+    
+    .photo-upload-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+    
+    .photo-upload-text {
+        font-size: 16px;
+        color: #333;
+    }
+    
+    .photo-preview {
+        max-width: 100%;
+        width: 100%;
+        object-fit: contain;
+        display: block;
+        flex: 1;
+    }
+    
+    .photo-preview.active {
+        display: block;
+        border-radius: 20px 20px 0 0;
+        min-height: 300px;
+    }
+    
+    .replace-photo-btn {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #B58358;
+        color: white;
+        padding: 12px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    /* Поля ввода */
+    .form-field {
+        margin-bottom: 20px;
+    }
+    
+    .field-label {
+        font-size: 16px;
+        color: #333;
+        display: block;
+        font-weight: 500;
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .field-input-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .field-input-wrapper {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .field-input-card input,
+    .field-input-card select {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        color: #333;
+        outline: none;
+        width: 100%;
+        padding: 0;
+    }
+    
+    .field-input-card input::placeholder,
+    .field-input-card select::placeholder {
+        color: #999;
+        opacity: 0.7;
+    }
+    
+    .field-input-card select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right center;
+        padding-right: 25px;
+    }
+    
+    /* Расходы */
+    .expense-section {
+        margin-bottom: 20px;
+    }
+    
+    .expense-list {
+        margin-top: 8px;
+    }
+    
+    .expense-item {
+        background: rgba(9, 9, 9, 0.15);
+        border-radius: 12px;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .expense-item-info {
+        flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .expense-item-name {
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .expense-item-amount {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+        margin-right: 8px;
+    }
+    
+    .remove-expense-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    
+    .add-expense-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 10px auto;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Модальное окно */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: #F7F3EC;
+        border-radius: 25px;
+        padding: 30px;
+        width: 90%;
+        max-width: 400px;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    
+    .modal-field {
+        margin-bottom: 20px;
+    }
+    
+    .modal-field-label {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        font-weight: 500;
+    }
+    
+    .modal-input-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 0;
+    }
+    
+    .modal-input-wrapper {
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .modal-input-wrapper:last-child {
+        border-bottom: none;
+    }
+    
+    .modal-input-card input,
+    .modal-input-card select {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        color: #333;
+        outline: none;
+        padding: 0;
+    }
+    
+    .modal-input-card input::placeholder {
+        color: #999;
+        opacity: 0.7;
+    }
+    
+    .modal-input-card select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right center;
+        padding-right: 25px;
+    }
+    
+    .modal-submit-btn {
+        width: 100%;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    
+    /* Кнопка отправки */
+    .submit-btn {
+        width: 65%;
+        margin: 40px auto 0;
+        display: block;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .hidden-input {
+        display: none;
+    }
+    
+    /* Скрытые формы */
+    .additional-forms {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-toggle {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 12px 20px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 16px;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+    
+    .form-toggle:hover {
+        background: rgba(255, 255, 255, 0.7);
+    }
+    
+    .form-toggle::after {
+        content: '▼';
+        transition: transform 0.3s ease;
+    }
+    
+    .form-toggle.active::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-form {
+        display: none;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .collapsible-form.active {
+        display: block;
+    }
+    
+    .collapsible-form .field-input-card {
+        margin-bottom: 15px;
+    }
+    
+    .collapsible-form-btn {
+        width: 100%;
+        background: #B58358;
+        color: white;
+        padding: 12px;
+        border-radius: 15px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+</style>
 
-        <p><label>Ответственный сотрудник:<br>
-            <select name="employee_id" required>
-                {% for employee in employees %}
-                    <option value="{{ employee.id }}" {% if employee.id == sale.employee_id %}selected{% endif %}>
-                        {{ employee.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </label></p>
-
-        <p><label>Дата продажи:<br>
-            <input type="date" name="date" value="{{ sale.date.strftime('%Y-%m-%d') }}">
-        </label> (оставьте пустым для сегодня)</p>
-
-        <h3>Расходы</h3>
-        <div id="expenses-container">
-            {% for expense in sale.expenses %}
-                <div class="expense-row" style="margin-bottom: 10px;">
-                    <select name="expense_type_id">
-                        <option value="">— Выберите тип —</option>
-                        {% for et in expense_types %}
-                            <option value="{{ et.id }}" {% if et.id == expense.expense_type_id %}selected{% endif %}>
-                                {{ et.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <input type="number" step="0.01" name="expense_amount" value="{{ expense.amount }}" placeholder="Сумма" required>
-                    <button type="button" onclick="removeExpense(this)">Удалить</button>
-                </div>
-            {% else %}
-                <!-- Если расходов нет — добавляем одну пустую строку -->
-                <div class="expense-row" style="margin-bottom: 10px;">
-                    <select name="expense_type_id">
-                        <option value="">— Выберите тип —</option>
-                        {% for et in expense_types %}
-                            <option value="{{ et.id }}">{{ et.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="number" step="0.01" name="expense_amount" placeholder="Сумма">
-                    <button type="button" onclick="removeExpense(this)">Удалить</button>
-                </div>
-            {% endfor %}
+<div class="add-sale-container">
+    <!-- Логотип -->
+    <div class="logo-icon">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 class="page-title">Изменение продажи</h1>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" id="editSaleForm">
+        <!-- Фотография -->
+        <div class="photo-section">
+            <label class="photo-label">Фотография</label>
+            <div class="photo-upload-card">
+                {% if sale.photo %}
+                    <img src="{{ url_for('uploaded_file', filename=sale.photo) }}" id="photo-preview" class="photo-preview active" alt="Preview">
+                    <button type="button" class="replace-photo-btn" onclick="document.getElementById('photo-input').click()">Заменить фото</button>
+                {% else %}
+                    <div onclick="document.getElementById('photo-input').click()">
+                        <div class="photo-upload-icon">📷</div>
+                        <div class="photo-upload-text">Загрузить фото</div>
+                        <img id="photo-preview" class="photo-preview" alt="Preview">
+                    </div>
+                {% endif %}
+            </div>
+            <input type="file" name="photo" id="photo-input" accept="image/*" class="hidden-input">
         </div>
-        <button type="button" onclick="addExpense()">Добавить расход</button>
-
-        <p style="margin-top: 30px;">
-            <input type="submit" value="Сохранить изменения"
-                   style="font-size:18px; padding:10px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">
-            &nbsp;
-            <a href="{{ url_for('sales') }}" style="font-size:18px; text-decoration:none; color:#333;">Отмена</a>
-        </p>
+        
+        <!-- Наименование -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Наименование</label>
+                <div class="field-input-wrapper">
+                    <input type="text" name="product_name" value="{{ sale.product_name }}" required placeholder="Введи наименование">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Город -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Город</label>
+                <div class="field-input-wrapper">
+                    <select name="city_id" required>
+                        <option value="">Выбери город</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}" {% if city.id == sale.city_id %}selected{% endif %}>{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Покупка -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Покупка</label>
+                <div class="field-input-wrapper">
+                    <input type="number" step="0.01" name="buy_price" value="{{ sale.buy_price }}" required placeholder="Введи цену покупки">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Продажа -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Продажа</label>
+                <div class="field-input-wrapper">
+                    <input type="number" step="0.01" name="sell_price" value="{{ sale.sell_price }}" required placeholder="Введи цену продажи">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Расходы -->
+        <div class="expense-section">
+            <div class="form-field">
+                <div class="field-input-card">
+                    <div class="field-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Расход</span>
+                        <span style="font-size: 16px; color: #333; font-weight: 500;" id="total-expense">0$</span>
+                    </div>
+                    <div class="expense-list" id="expenses-list">
+                        <!-- Список расходов будет добавляться сюда -->
+                    </div>
+                    <div style="text-align: center;">
+                        <button type="button" class="add-expense-btn" onclick="openExpenseModal()">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Скрытые поля для отправки формы -->
+        <div id="expenses-hidden-inputs"></div>
+        
+        <!-- Модальное окно для добавления расхода -->
+        <div class="modal-overlay" id="expense-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">Добавить расход</h2>
+                <div class="modal-field">
+                    <label class="modal-field-label">Наименование</label>
+                    <div class="modal-input-card">
+                        <div class="modal-input-wrapper">
+                            <select id="expense-type-select">
+                                <option value="">Выберите тип расхода</option>
+                                {% for et in expense_types %}
+                                    <option value="{{ et.id }}" data-name="{{ et.name }}">{{ et.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label class="modal-field-label">Сумма</label>
+                    <div class="modal-input-card">
+                        <div class="modal-input-wrapper">
+                            <input type="number" step="0.01" id="expense-amount-input" placeholder="Введи сумму">
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="modal-submit-btn" onclick="saveExpense()">Добавить</button>
+            </div>
+        </div>
+        
+        <!-- Продавец -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Продавец</label>
+                <div class="field-input-wrapper">
+                    <select name="employee_id" required>
+                        <option value="">Выбери продавца</option>
+                        {% for employee in employees %}
+                            <option value="{{ employee.id }}" {% if employee.id == sale.employee_id %}selected{% endif %}>{{ employee.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Дата -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Дата</label>
+                <div class="field-input-wrapper">
+                    <input type="date" name="date" value="{{ sale.date.strftime('%Y-%m-%d') }}" placeholder="Выбери дату">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Кнопка отправки -->
+        <button type="submit" class="submit-btn">Сохранить изменения</button>
     </form>
+    
+    <!-- Дополнительные формы (скрыты по умолчанию) -->
+    <div class="additional-forms">
+        <div class="form-toggle" onclick="toggleForm('city-form')">
+            Добавить новый город
+        </div>
+        <div id="city-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_city') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Название города">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить город</button>
+            </form>
+        </div>
+        
+        <div class="form-toggle" onclick="toggleForm('expense-type-form')">
+            Добавить новый тип расхода
+        </div>
+        <div id="expense-type-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_expense_type') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Название типа">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить тип расхода</button>
+            </form>
+        </div>
+        
+        <div class="form-toggle" onclick="toggleForm('employee-form')">
+            Добавить нового сотрудника
+        </div>
+        <div id="employee-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_employee') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Имя сотрудника">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить сотрудника</button>
+            </form>
+        </div>
+    </div>
+</div>
 
-    <!-- Блоки добавления справочников (как в add_sale) -->
-    <hr style="margin: 40px 0;">
-
-    <h3>Добавить новый город</h3>
-    <form method="POST" action="{{ url_for('add_city') }}">
-        <input type="text" name="name" required placeholder="Название города">
-        <input type="submit" value="Добавить город">
-    </form>
-
-    <h3>Добавить новый тип расхода</h3>
-    <form method="POST" action="{{ url_for('add_expense_type') }}">
-        <input type="text" name="name" required placeholder="Название типа">
-        <input type="submit" value="Добавить тип расхода">
-    </form>
-
-    <h3>Добавить нового сотрудника</h3>
-    <form method="POST" action="{{ url_for('add_employee') }}">
-        <input type="text" name="name" required placeholder="Имя сотрудника">
-        <input type="submit" value="Добавить сотрудника">
-    </form>
-
-    <script>
-        function addExpense() {
-            const container = document.getElementById('expenses-container');
-            const row = document.createElement('div');
-            row.className = 'expense-row';
-            row.style.marginBottom = '10px';
-            row.innerHTML = `
-                <select name="expense_type_id">
-                    <option value="">— Выберите тип —</option>
-                    {% for et in expense_types %}
-                        <option value="{{ et.id }}">{{ et.name }}</option>
-                    {% endfor %}
-                </select>
-                <input type="number" step="0.01" name="expense_amount" placeholder="Сумма">
-                <button type="button" onclick="removeExpense(this)">Удалить</button>
+<script>
+    // Превью фотографии
+    document.getElementById('photo-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photo-preview');
+                preview.src = e.target.result;
+                preview.classList.add('active');
+                
+                // Скрываем иконку и текст загрузки, если они есть
+                const uploadText = document.querySelector('.photo-upload-text');
+                const uploadIcon = document.querySelector('.photo-upload-icon');
+                if (uploadText) uploadText.style.display = 'none';
+                if (uploadIcon) uploadIcon.style.display = 'none';
+                
+                // Показываем кнопку "Заменить фото", если её нет
+                let replaceBtn = document.querySelector('.replace-photo-btn');
+                if (!replaceBtn) {
+                    replaceBtn = document.createElement('button');
+                    replaceBtn.type = 'button';
+                    replaceBtn.className = 'replace-photo-btn';
+                    replaceBtn.textContent = 'Заменить фото';
+                    replaceBtn.onclick = function() { document.getElementById('photo-input').click(); };
+                    document.querySelector('.photo-upload-card').appendChild(replaceBtn);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Массив для хранения расходов (загружаем существующие)
+    let expenses = [
+        {% for expense in sale.expenses %}
+        {
+            typeId: '{{ expense.expense_type_id }}',
+            name: '{{ expense.expense_type.name }}',
+            amount: {{ expense.amount }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Открытие модального окна
+    function openExpenseModal() {
+        document.getElementById('expense-modal').classList.add('active');
+        document.getElementById('expense-type-select').value = '';
+        document.getElementById('expense-amount-input').value = '';
+    }
+    
+    // Закрытие модального окна
+    function closeExpenseModal() {
+        document.getElementById('expense-modal').classList.remove('active');
+    }
+    
+    // Сохранение расхода
+    function saveExpense() {
+        const typeSelect = document.getElementById('expense-type-select');
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        const typeId = typeSelect.value;
+        const typeName = selectedOption ? selectedOption.getAttribute('data-name') || selectedOption.text : '';
+        const amount = parseFloat(document.getElementById('expense-amount-input').value);
+        
+        if (!typeId || !amount || amount <= 0) {
+            alert('Заполните все поля корректно');
+            return;
+        }
+        
+        // Добавляем расход в массив
+        expenses.push({
+            typeId: typeId,
+            name: typeName,
+            amount: amount
+        });
+        
+        // Обновляем отображение
+        renderExpenses();
+        updateTotalExpense();
+        closeExpenseModal();
+    }
+    
+    // Удаление расхода
+    function removeExpense(index) {
+        expenses.splice(index, 1);
+        renderExpenses();
+        updateTotalExpense();
+    }
+    
+    // Отображение списка расходов
+    function renderExpenses() {
+        const container = document.getElementById('expenses-list');
+        const hiddenInputs = document.getElementById('expenses-hidden-inputs');
+        
+        container.innerHTML = '';
+        hiddenInputs.innerHTML = '';
+        
+        expenses.forEach((expense, index) => {
+            // Создаем элемент списка
+            const item = document.createElement('div');
+            item.className = 'expense-item';
+            item.innerHTML = `
+                <div class="expense-item-info">
+                    <span class="expense-item-name">${expense.name}</span>
+                    <span class="expense-item-amount">${expense.amount.toFixed(2)}$</span>
+                </div>
+                <button type="button" class="remove-expense-btn" onclick="removeExpense(${index})">−</button>
             `;
-            container.appendChild(row);
+            container.appendChild(item);
+            
+            // Создаем скрытые поля для формы
+            const typeInput = document.createElement('input');
+            typeInput.type = 'hidden';
+            typeInput.name = 'expense_type_id';
+            typeInput.value = expense.typeId;
+            
+            const amountInput = document.createElement('input');
+            amountInput.type = 'hidden';
+            amountInput.name = 'expense_amount';
+            amountInput.value = expense.amount;
+            
+            hiddenInputs.appendChild(typeInput);
+            hiddenInputs.appendChild(amountInput);
+        });
+    }
+    
+    // Переключение дополнительных форм
+    function toggleForm(formId) {
+        const form = document.getElementById(formId);
+        const toggle = form.previousElementSibling;
+        
+        form.classList.toggle('active');
+        toggle.classList.toggle('active');
+    }
+    
+    // Обновление общей суммы расходов
+    function updateTotalExpense() {
+        let total = 0;
+        expenses.forEach(expense => {
+            total += expense.amount;
+        });
+        document.getElementById('total-expense').textContent = total.toFixed(2) + '$';
+    }
+    
+    // Закрытие модального окна при клике вне его
+    document.getElementById('expense-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeExpenseModal();
         }
-
-        function removeExpense(button) {
-            button.parentElement.remove();
-        }
-    </script>
+    });
+    
+    // Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+        renderExpenses();
+        updateTotalExpense();
+    });
+</script>
 {% endblock %}
