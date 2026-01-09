@@ -515,36 +515,14 @@ def all_sales_summary():
     # Получаем все продажи
     all_sales = sales_query.all()
 
-    # Группируем данные
-    summary_data = {}
+    # Группируем данные по городам
+    cities_data = {}
 
     for sale in all_sales:
-        # Год-месяц ключ
-        year_month = sale.date.strftime('%Y-%m')
-        month_name_ru = {
-            '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
-            '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
-            '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
-        }[sale.date.strftime('%m')]
-        year = sale.date.year
-        month = sale.date.month
-
-        # Город
         city_name = sale.city.name
-
-        # Создаем структуру данных
-        if year not in summary_data:
-            summary_data[year] = {}
-
-        if month not in summary_data[year]:
-            summary_data[year][month] = {
-                'month_name': month_name_ru,
-                'year_month': year_month,
-                'cities': {}
-            }
-
-        if city_name not in summary_data[year][month]['cities']:
-            summary_data[year][month]['cities'][city_name] = {
+        
+        if city_name not in cities_data:
+            cities_data[city_name] = {
                 'count': 0,
                 'total_buy': 0,
                 'total_sell': 0,
@@ -554,7 +532,7 @@ def all_sales_summary():
             }
 
         # Обновляем статистику
-        data = summary_data[year][month]['cities'][city_name]
+        data = cities_data[city_name]
         data['count'] += 1
         data['total_buy'] += sale.buy_price
         data['total_sell'] += sale.sell_price
@@ -566,32 +544,23 @@ def all_sales_summary():
         # Прибыли
         data['gross_profit'] += (sale.sell_price - sale.buy_price)
         data['net_profit'] += (sale.sell_price - sale.buy_price - sale_expenses)
-
-    # Общая статистика по годам
-    year_stats = {}
-    for year in summary_data:
-        year_stats[year] = {
-            'total_count': 0,
-            'total_gross_profit': 0,
-            'total_net_profit': 0
-        }
-        for month in summary_data[year]:
-            for city in summary_data[year][month]['cities'].values():
-                year_stats[year]['total_count'] += city['count']
-                year_stats[year]['total_gross_profit'] += city['gross_profit']
-                year_stats[year]['total_net_profit'] += city['net_profit']
+    
+    # Определяем период для отображения
+    period_label = "Все периоды"
+    if year_filter != 'all':
+        period_label = f"{year_filter} год"
 
     # Список годов для фильтра
     all_years = sorted(set(s.date.year for s in Sale.query.all()), reverse=True)
     all_cities = sorted([c.name for c in City.query.all()])
 
     return render_template('all_sales_summary.html',
-                           summary_data=summary_data,
-                           year_stats=year_stats,
+                           cities_data=cities_data,
                            all_years=all_years,
                            all_cities=all_cities,
                            selected_year=year_filter,
-                           selected_city=city_filter)
+                           selected_city=city_filter,
+                           period_label=period_label)
 
 
 if __name__ == '__main__':
