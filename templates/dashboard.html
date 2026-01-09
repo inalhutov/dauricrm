@@ -1,15 +1,243 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .dashboard-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 20px;
+    }
+    
+    /* Иконка сверху */
+    .logo-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+    }
+    
+    /* Карточка периода */
+    .period-card {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 30px;
+        display: block;
+        width: 65%;
+        margin-left: auto;
+        margin-right: auto;
+        box-sizing: border-box;
+    }
+    
+    /* Две карточки метрик */
+    .metrics-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .metric-card {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 20px;
+        border-radius: 20px;
+        text-align: center;
+    }
+    
+    .metric-card h2 {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .metric-card p {
+        font-size: 14px;
+        color: #333;
+        margin: 8px 0 0;
+    }
+    
+    /* Карточка прибыли */
+    .profit-card {
+        background: #514D4A;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .profit-card h2 {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 0;
+        color: white;
+    }
+    
+    .profit-card p {
+        font-size: 14px;
+        margin: 10px 0 0;
+        opacity: 0.9;
+        color: white;
+    }
+    
+    /* Кнопка Подробнее */
+    .details-btn {
+        display: block;
+        width: 65%;
+        margin: 0 auto 20px;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+    
+    /* Кнопки действий */
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 200px;
+        align-items: center;
+    }
+    
+    .action-btn {
+        display: block;
+        width: 65%;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .action-btn-primary {
+        background: #B58358;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .action-btn-secondary {
+        background: rgba(255, 255, 255, 0.5);
+        color: #333;
+        font-weight: 500;
+    }
+    
+    /* Выбор периода (скрыт по умолчанию, можно показать через настройки) */
+    .period-selector {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 15px;
+        display: none;
+    }
+    
+    .period-selector.active {
+        display: block;
+    }
+    
+    .period-selector form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .period-selector select,
+    .period-selector input {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+    }
+    
+    .period-selector button {
+        background: #B58358;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .toggle-period-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        z-index: 100;
+    }
+    
+    @media (min-width: 768px) {
+        .dashboard-container {
+            max-width: 600px;
+            padding-top: 40px;
+        }
+        
+        .metric-card h2 {
+            font-size: 48px;
+        }
+        
+        .profit-card h2 {
+            font-size: 52px;
+        }
+    }
+</style>
 
-    <!-- Выбор периода -->
+<div class="dashboard-container">
+    <!-- Иконка -->
+    <div class="logo-icon">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </div>
+    
+    <!-- Карточка периода -->
     <div style="text-align: center; margin-bottom: 30px;">
-        <form method="GET" style="display: inline-block;">
+        <div class="period-card">{{ period_label }}</div>
+    </div>
+    
+    <!-- Выбор периода (скрыт по умолчанию) -->
+    <div class="period-selector" id="periodSelector">
+        <form method="GET">
             <select name="period_type" onchange="toggleCustom(this.value)">
                 <option value="current_month" {% if period_type == 'current_month' %}selected{% endif %}>Месяц</option>
                 <option value="custom" {% if period_type == 'custom' %}selected{% endif %}>Произвольный период</option>
             </select>
 
-            <div id="month-select" style="display: inline-block; margin-left: 10px;">
+            <div id="month-select" style="display: flex; gap: 10px;">
                 <select name="month">
                     {% for m in range(1,13) %}
                         <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
@@ -24,55 +252,58 @@
                 </select>
             </div>
 
-            <div id="custom-dates" style="display: none; margin-left: 10px;">
-                <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}">
-                —
-                <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            <div id="custom-dates" style="display: none; width: 100%;">
+                <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" style="width: 48%;">
+                <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}" style="width: 48%;">
             </div>
 
-            <button type="submit" style="margin-left: 10px; padding: 8px 16px;">Применить</button>
+            <button type="submit">Применить</button>
         </form>
     </div>
-
-    <!-- Заголовок периода -->
-    <div style="text-align: center; margin-bottom: 40px;">
-        <div style="display: inline-block; background: #f0f0f0; padding: 10px 30px; border-radius: 30px; font-size: 18px;">
-            {{ period_label }}
+    
+    <!-- Две карточки метрик -->
+    <div class="metrics-row">
+        <div class="metric-card">
+            <h2>{{ count_sales }}</h2>
+            <p>Реализовано</p>
+        </div>
+        <div class="metric-card">
+            <h2>+{{ "%.0f"|format(gross_income) }}$</h2>
+            <p>Доход</p>
         </div>
     </div>
-
-    <!-- Карточки -->
-    <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 50px;">
-        <div style="background: white; padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
-            <h2 style="font-size: 48px; margin: 0;">{{ count_sales }}</h2>
-            <p style="color: #666; margin: 10px 0 0;">Реализовано</p>
-        </div>
-
-        <div style="background: white; padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
-            <h2 style="font-size: 48px; margin: 0; color: #2e8b57;">+{{ "%.2f"|format(gross_income) }}$</h2>
-            <p style="color: #666; margin: 10px 0 0;">Доход</p>
-        </div>
+    
+    <!-- Карточка прибыли -->
+    <div class="profit-card">
+        <h2>+{{ "%.0f"|format(net_profit) }}$</h2>
+        <p>Прибыль с вычетом расходов</p>
     </div>
-
-    <div style="text-align: center; margin-bottom: 60px;">
-        <div style="display: inline-block; background: #444; color: white; padding: 25px 60px; border-radius: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);">
-            <h2 style="font-size: 52px; margin: 0;">+{{ "%.2f"|format(net_profit) }}$</h2>
-            <p style="margin: 10px 0 0; opacity: 0.9;">Прибыль с вычетом расходов</p>
-        </div>
+    
+    <!-- Кнопка Подробнее -->
+    <a href="{{ url_for('sales') }}" class="details-btn">Подробнее</a>
+    
+    <!-- Кнопки действий -->
+    <div class="action-buttons">
+        <a href="{{ url_for('add_sale') }}" class="action-btn action-btn-primary">Добавить продажу</a>
+        <a href="{{ url_for('all_sales_summary') }}" class="action-btn action-btn-secondary">Все продажи</a>
     </div>
+    
+    <!-- Кнопка переключения выбора периода -->
+    <button class="toggle-period-btn" onclick="togglePeriodSelector()" title="Выбрать период">📅</button>
+</div>
 
-    <div style="text-align: center;">
-        <a href="{{ url_for('sales') }}" style="display: inline-block; background: #d4a574; color: white; padding: 15px 50px; border-radius: 30px; font-size: 20px; text-decoration: none;">
-            Подробнее
-        </a>
-    </div>
-
-    <script>
-        function toggleCustom(val) {
-            document.getElementById('month-select').style.display = val === 'current_month' ? 'inline-block' : 'none';
-            document.getElementById('custom-dates').style.display = val === 'custom' ? 'inline-block' : 'none';
-        }
-        // При загрузке страницы правильно показать/скрыть
-        toggleCustom('{{ period_type }}');
-    </script>
+<script>
+    function toggleCustom(val) {
+        document.getElementById('month-select').style.display = val === 'current_month' ? 'flex' : 'none';
+        document.getElementById('custom-dates').style.display = val === 'custom' ? 'flex' : 'none';
+    }
+    
+    function togglePeriodSelector() {
+        const selector = document.getElementById('periodSelector');
+        selector.classList.toggle('active');
+    }
+    
+    // При загрузке страницы правильно показать/скрыть
+    toggleCustom('{{ period_type }}');
+</script>
 {% endblock %}
