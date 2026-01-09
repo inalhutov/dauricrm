@@ -1,11 +1,323 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Подробнее</h1>
-    <h2>Общая чистая прибыль: <strong>{{ total_profit }} $.</strong></h2>
+<style>
+    .index-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 80px;
+    }
+    
+    /* Карточка периода */
+    .period-card {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 30px;
+        display: block;
+        width: 65%;
+        margin-left: auto;
+        margin-right: auto;
+        box-sizing: border-box;
+    }
+    
+    /* Фильтр по городу */
+    .city-filter {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .city-filter form {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 10px 20px;
+        border-radius: 15px;
+    }
+    
+    .city-filter label {
+        font-weight: 500;
+        color: #333;
+        margin-right: 10px;
+    }
+    
+    .city-filter select {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        background: white;
+    }
+    
+    /* Две карточки метрик */
+    .metrics-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .metric-card {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 20px;
+        border-radius: 20px;
+        text-align: center;
+    }
+    
+    .metric-card h2 {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .metric-card p {
+        font-size: 14px;
+        color: #333;
+        margin: 8px 0 0;
+    }
+    
+    /* Карточка расходов */
+    .expenses-card {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 20px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .expenses-card .expenses-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .expenses-card .expenses-info p {
+        font-size: 14px;
+        color: #333;
+        margin: 0 0 5px 0;
+    }
+    
+    .expenses-card .expenses-info h2 {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .expenses-card .view-expenses-btn {
+        background: #B58358;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+        align-self: center;
+        white-space: nowrap;
+    }
+    
+    /* Карточка прибыли */
+    .profit-card {
+        background: rgba(255, 255, 255, 0.5);
+        color: #333;
+        padding: 15px 25px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .profit-card h2 {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .profit-card p {
+        font-size: 14px;
+        margin: 10px 0 0;
+        opacity: 0.9;
+        color: #333;
+    }
+    
+    /* Заголовок списка */
+    .sales-header {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin: 40px 0 20px 0;
+        text-align: center;
+    }
+    
+    /* Карточки продаж */
+    .sales-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sale-card {
+        background: white;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .sale-card-image-wrapper {
+        padding: 15px;
+        background: white;
+        min-height: 500px;
+    }
+    
+    .sale-card-image {
+        width: 100%;
+        height: 100%;
+        min-height: 470px;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+        background: #f8f8f8;
+        border-radius: 15px;
+    }
+    
+    .sale-card-content {
+        padding: 20px;
+    }
+    
+    .sale-data-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .sale-data-row:last-child {
+        border-bottom: none;
+    }
+    
+    .sale-data-label {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .sale-data-value {
+        color: #333;
+        font-weight: bold;
+    }
+    
+    /* Расходы внутри карточки */
+    .expenses-in-card {
+        margin-top: 10px;
+    }
+    
+    .expense-item-in-card {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 10px 15px;
+        border-radius: 10px;
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .expense-item-in-card strong {
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .expense-item-in-card .amount {
+        color: #333;
+        font-weight: bold;
+    }
+    
+    /* Карточка прибыли внутри продажи */
+    .profit-in-card {
+        background: #514D4A;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .profit-in-card strong {
+        color: white;
+        font-weight: bold;
+    }
+    
+    .profit-in-card .amount {
+        color: white;
+        font-weight: bold;
+        font-size: 20px;
+    }
+    
+    /* Кнопка изменения */
+    .edit-btn {
+        display: block;
+        width: 100%;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 15px;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+    
+    @media (min-width: 768px) {
+        .index-container {
+            max-width: 600px;
+            padding-top: 40px;
+        }
+        
+        .metric-card h2 {
+            font-size: 48px;
+        }
+        
+        .expenses-card .expenses-info h2 {
+            font-size: 42px;
+        }
+        
+        .profit-card h2 {
+            font-size: 52px;
+        }
+        
+        .sale-card {
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+</style>
 
+<div class="index-container">
     <!-- Фильтр по городу -->
-    <div style="margin-bottom: 20px;">
-        <form method="GET" style="display: inline;">
+    <div class="city-filter">
+        <form method="GET">
             <label><strong>Город:</strong>
                 <select name="city" onchange="this.form.submit()">
                     <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
@@ -16,83 +328,127 @@
             </label>
             <input type="hidden" name="sort" value="{{ sort }}">
         </form>
-
-        {% if city_filter != 'all' %}
-            <small style="margin-left: 20px;">
-                Фильтр: <strong>{{ city_filter }}</strong>
-                <a href="{{ url_for('index', sort=sort, city='all') }}" style="color: #666;">[сбросить]</a>
-            </small>
-        {% endif %}
     </div>
 
-    <table>
-        <tr>
-            <th>Фото</th>
-            <th>Наименование</th>
-            <th>Покупка</th>
-            <th>Продажа</th>
-            <th>Расходы</th>                  <!-- НОВАЯ КОЛОНКА -->
-            <th>Прибыль</th>
-            <th>Город</th>
-            <th>Дата</th>
-            <th>Сотрудник</th>
-            <th>Действия</th>
-        </tr>
+    <!-- Карточка периода -->
+    <div class="period-card">
+        {{ period_label }}{% if city_filter != 'all' %} ({{ city_filter }}){% endif %}
+    </div>
+
+    <!-- Две карточки метрик -->
+    <div class="metrics-row">
+        <div class="metric-card">
+            <h2>{{ count_sales }}</h2>
+            <p>Реализовано</p>
+        </div>
+        <div class="metric-card">
+            <h2>+{{ "%.0f"|format(gross_income) }}$</h2>
+            <p>Доход</p>
+        </div>
+    </div>
+
+    <!-- Карточка расходов -->
+    <div class="expenses-card">
+        <div class="expenses-info">
+            <p>Расходы</p>
+            <h2>{{ "%.0f"|format(total_expenses) }}$</h2>
+        </div>
+        <a href="{{ url_for('stats') }}" class="view-expenses-btn">Просмотреть расходы</a>
+    </div>
+
+    <!-- Карточка прибыли -->
+    <div class="profit-card">
+        <h2>{% if net_profit_month >= 0 %}+{% endif %}{{ "%.0f"|format(net_profit_month) }}$</h2>
+        <p>Прибыль с вычетом расходов</p>
+    </div>
+
+    <!-- Заголовок списка -->
+    <h2 class="sales-header">Реализованные позиции</h2>
+
+    <!-- Список продаж -->
+    <ul class="sales-list">
         {% for s in sales %}
-        <tr>
-            <td>
+        <li class="sale-card">
+            <div class="sale-card-image-wrapper">
                 {% if s.photo %}
-                    <img src="{{ url_for('uploaded_file', filename=s.photo) }}" alt="фото" style="max-height: 100px; max-width: 150px;">
+                    <img src="{{ url_for('uploaded_file', filename=s.photo) }}" alt="фото" class="sale-card-image">
                 {% else %}
-                    Нет фото
+                    <div class="sale-card-image" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 15px;">
+                        Нет фото
+                    </div>
                 {% endif %}
-            </td>
-            <td>{{ s.product_name }}</td>
-            <td>{{ "%.2f"|format(s.buy_price) }}</td>
-            <td>{{ "%.2f"|format(s.sell_price) }}</td>
-
-            <!-- Колонка с расходами -->
-            <td>
+            </div>
+            
+            <div class="sale-card-content">
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Город</span>
+                    <span class="sale-data-value">{{ s.city.name }}</span>
+                </div>
+                
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Покупка</span>
+                    <span class="sale-data-value">{{ "%.0f"|format(s.buy_price) }}$</span>
+                </div>
+                
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Продажа</span>
+                    <span class="sale-data-value">{{ "%.0f"|format(s.sell_price) }}$</span>
+                </div>
+                
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Расход</span>
+                    <span class="sale-data-value">
+                        {% if s.expenses %}
+                            {{ "%.0f"|format(s.expenses|sum(attribute='amount')) }}$
+                        {% else %}
+                            0$
+                        {% endif %}
+                    </span>
+                </div>
+                
                 {% if s.expenses %}
-                    <details>
-                        <summary style="cursor: pointer; color: #0066cc;">
-                            {{ "%.2f"|format(s.expenses|sum(attribute='amount')) }} $ ({{ s.expenses|length }})
-                        </summary>
-                        <ul style="margin: 5px 0 0 20px; padding-left: 0; list-style: none;">
-                            {% for exp in s.expenses %}
-                                <li>{{ exp.expense_type.name }}: {{ "%.2f"|format(exp.amount) }} $</li>
-                            {% endfor %}
-                        </ul>
-                    </details>
-                {% else %}
-                    0.00 $
+                <div class="expenses-in-card">
+                    {% for exp in s.expenses %}
+                    <div class="expense-item-in-card">
+                        <strong>{{ exp.expense_type.name }}</strong>
+                        <span class="amount">{{ "%.0f"|format(exp.amount) }}$</span>
+                    </div>
+                    {% endfor %}
+                </div>
                 {% endif %}
-            </td>
-
-            <td><strong>{{ "%.2f"|format(s.profit) }}</strong></td>
-            <td>{{ s.city.name }}</td>
-            <td>{{ s.date.strftime('%d.%m.%Y') }}</td>
-            <td>{{ s.employee.name }}</td>
-            <td>
-                <a href="{{ url_for('edit_sale', sale_id=s.id) }}" style="color: blue; margin-right: 15px;">Изменить</a>
-
-                <form style="display: inline;" method="POST" action="{{ url_for('delete_sale', sale_id=s.id) }}"
-                      onsubmit="return confirm('Точно удалить эту продажу?');">
-                    <button type="submit" style="background:none; border:none; color:red; cursor:pointer; padding:0;">
-                        Удалить
-                    </button>
-                </form>
-            </td>
-        </tr>
+                
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Продавец</span>
+                    <span class="sale-data-value">{{ s.employee.name }}</span>
+                </div>
+                
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Дата</span>
+                    <span class="sale-data-value">
+                        {% set months_ru = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'] %}
+                        {{ s.date.day }} {{ months_ru[s.date.month - 1] }} {{ s.date.year }}
+                    </span>
+                </div>
+                
+                <div class="profit-in-card">
+                    <strong>Прибыль</strong>
+                    <span class="amount">{{ "%.0f"|format(s.profit) }}$</span>
+                </div>
+                
+                <a href="{{ url_for('edit_sale', sale_id=s.id) }}" class="edit-btn">Изменить</a>
+            </div>
+        </li>
         {% else %}
-        <tr><td colspan="10">
+        <li class="empty-state">
             {% if city_filter != 'all' %}
                 В городе <strong>{{ city_filter }}</strong> пока нет продаж.
             {% else %}
                 Пока нет продаж вообще.
             {% endif %}
-            <a href="{{ url_for('add_sale') }}">Добавьте первую!</a>
-        </td></tr>
+            <br><br>
+            <a href="{{ url_for('add_sale') }}" style="color: #B58358; font-weight: bold;">Добавьте первую!</a>
+        </li>
         {% endfor %}
-    </table>
+    </ul>
+</div>
 {% endblock %}

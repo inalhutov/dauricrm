@@ -1,120 +1,526 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .stats-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 80px;
+    }
+    
+    /* Карточка периода */
+    .period-card {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 30px;
+        display: block;
+        width: 65%;
+        margin-left: auto;
+        margin-right: auto;
+        box-sizing: border-box;
+    }
+    
+    /* Карточка общей суммы расходов */
+    .total-expense-card {
+        background: #F8F4EE;
+        color: #333;
+        padding: 20px 50px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .total-expense-card h2 {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .total-expense-card p {
+        font-size: 14px;
+        margin: 10px 0 0;
+        opacity: 0.9;
+        color: #333;
+    }
+    
+    /* Список расходов по категориям */
+    .expense-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 30px 0;
+    }
+    
+    .expense-item {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 15px 20px;
+        border-radius: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 16px;
+    }
+    
+    .expense-item strong {
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .expense-item .amount {
+        color: #333;
+        font-weight: bold;
+    }
+    
+    .expense-empty {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 20px;
+        border-radius: 20px;
+        text-align: center;
+        color: #666;
+    }
+    
+    /* Форма выбора периода */
+    .period-selector {
+        background: rgba(255, 255, 255, 0.7);
+        padding: 15px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .period-selector form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .period-selector .form-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .period-selector select,
+    .period-selector input {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .period-selector label {
+        font-weight: 500;
+        color: #333;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .period-selector button {
+        background: #B58358;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    /* Кнопка добавления (плюс) */
+    .add-button {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 32px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    
+    .add-button:hover {
+        transform: translateX(-50%) scale(1.1);
+    }
+    
+    .add-button.active {
+        transform: translateX(-50%) rotate(45deg);
+    }
+    
+    /* Модальное окно */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: #F7F3EC;
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.1);
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-close:hover {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Формы добавления */
+    .form-section {
+        background: rgba(255, 255, 255, 0.7);
+        padding: 20px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .form-section.active {
+        display: block;
+    }
+    
+    .form-section h3 {
+        margin: 0 0 15px 0;
+        color: #333;
+        font-size: 18px;
+    }
+    
+    .form-section form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .form-section label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .form-section input[type="text"],
+    .form-section input[type="number"],
+    .form-section input[type="date"],
+    .form-section select {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        background: white;
+    }
+    
+    .form-section input[type="submit"] {
+        background: #B58358;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        align-self: flex-start;
+    }
+    
+    .form-section .submit-red {
+        background: #f44336;
+    }
+    
+    /* Табы для переключения между формами */
+    .form-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-tab {
+        padding: 10px 20px;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-size: 16px;
+        color: #666;
+        font-weight: 500;
+        margin-bottom: -2px;
+    }
+    
+    .form-tab.active {
+        color: #B58358;
+        border-bottom-color: #B58358;
+    }
+    
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 30px;
+        margin-bottom: 80px;
+        color: #B58358;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    
+    @media (min-width: 768px) {
+        .stats-container {
+            max-width: 600px;
+            padding-top: 40px;
+        }
+        
+        .add-button {
+            bottom: 30px;
+        }
+        
+        .total-expense-card h2 {
+            font-size: 52px;
+        }
+        
+        .period-selector form {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        
+        .period-selector .form-row {
+            flex: 1;
+        }
+    }
+</style>
 
+<div class="stats-container">
     <!-- Выбор периода -->
-    <div style="text-align: center; margin-bottom: 30px;">
-        <form method="GET" style="display: inline-block;">
-            <select name="period_type" onchange="toggleCustom(this.value)">
-                <option value="current_month" {% if period_type == 'current_month' %}selected{% endif %}>Месяц</option>
-                <option value="custom" {% if period_type == 'custom' %}selected{% endif %}>Произвольный период</option>
-            </select>
+    <div class="period-selector">
+        <form method="GET">
+            <div class="form-row">
+                <select name="period_type" onchange="toggleCustom(this.value)">
+                    <option value="current_month" {% if period_type == 'current_month' %}selected{% endif %}>Месяц</option>
+                    <option value="custom" {% if period_type == 'custom' %}selected{% endif %}>Произвольный период</option>
+                </select>
 
-            <div id="month-select" style="display: inline-block; margin-left: 10px;">
-                <select name="month">
-                    {% for m in range(1,13) %}
-                        <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
-                            {{ ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][m-1] }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <select name="year">
-                    {% for y in all_years %}
-                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                </select>
+                <div id="month-select" style="display: flex; gap: 10px; flex: 1;">
+                    <select name="month">
+                        {% for m in range(1,13) %}
+                            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                                {{ ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][m-1] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <select name="year">
+                        {% for y in all_years %}
+                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="custom-dates" style="display: none; gap: 10px; flex: 1;">
+                    <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" style="flex: 1;">
+                    <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}" style="flex: 1;">
+                </div>
             </div>
 
-            <div id="custom-dates" style="display: none; margin-left: 10px;">
-                <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}">
-                —
-                <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            <div class="form-row">
+                <label>
+                    <strong>Город:</strong>
+                    <select name="city" style="flex: 1;">
+                        <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
+                        {% for city in all_cities %}
+                            <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Применить</button>
             </div>
-
-            <!-- Фильтр по городу -->
-            <label style="margin-left: 20px;"><strong>Город:</strong>
-                <select name="city">
-                    <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
-                    {% for city in all_cities %}
-                        <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-
-            <button type="submit" style="margin-left: 10px; padding: 8px 16px;">Применить</button>
         </form>
     </div>
 
     <!-- Заголовок периода -->
-    <div style="text-align: center; margin-bottom: 40px;">
-        <div style="display: inline-block; background: #f0f0f0; padding: 10px 30px; border-radius: 30px; font-size: 18px;">
-            {{ period_label }} {% if city_filter != 'all' %} ({{ city_filter }}){% endif %}
-        </div>
+    <div class="period-card">
+        {{ period_label }}{% if city_filter != 'all' %} ({{ city_filter }}){% endif %}
     </div>
 
     <!-- Общая сумма расходов -->
-    <div style="text-align: center; margin-bottom: 40px;">
-        <div style="display: inline-block; background: #F8F4EE; color: #333 ; padding: 20px 50px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-            <h2 style="font-size: 48px; margin: 0;">{{ "%.2f"|format(total_expenses) }}$</h2>
-            <p style="margin: 10px 0 0; opacity: 0.9;">Общие расходы</p>
-        </div>
+    <div class="total-expense-card">
+        <h2>{{ "%.0f"|format(total_expenses) }}$</h2>
+        <p>Расходы</p>
     </div>
 
     <!-- Расходы по категориям -->
-    <ul>
+    <ul class="expense-list">
         {% for et, amount in expense_by_type %}
-            <li><strong>{{ et }}:</strong> {{ "%.2f"|format(amount) }} $</li>
+            <li class="expense-item">
+                <strong>{{ et }}</strong>
+                <span class="amount">{{ "%.0f"|format(amount) }}$</span>
+            </li>
         {% else %}
-            <li>Пока нет расходов</li>
+            <li class="expense-empty">Пока нет расходов</li>
         {% endfor %}
     </ul>
 
-    <!-- Форма добавления общего расхода -->
-    <hr style="margin: 40px 0;">
-    <h3>Добавить общий расход (не привязанный к продаже)</h3>
-    <form method="POST" action="{{ url_for('add_general_expense') }}">
-        <p><label>Тип расхода:<br>
-            <select name="expense_type_id" required>
-                {% for et in expense_types %}
-                    <option value="{{ et.id }}">{{ et.name }}</option>
-                {% endfor %}
-            </select>
-        </label></p>
+<!--    <a href="{{ url_for('sales') }}" class="back-link">← Вернуться к списку продаж</a>-->
+</div>
 
-        <p><label>Сумма:<br>
-            <input type="number" step="0.01" name="amount" required>
-        </label></p>
+<!-- Кнопка добавления (плюс) -->
+<button class="add-button" id="addButton" onclick="toggleModal()">+</button>
 
-        <p><label>Город (опционально):<br>
-            <select name="city_id">
-                <option value="none">Без города</option>
-                {% for city in cities %}
-                    <option value="{{ city.id }}">{{ city.name }}</option>
-                {% endfor %}
-            </select>
-        </label></p>
+<!-- Модальное окно с формами -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="toggleModal()">×</button>
+        
+        <!-- Табы для переключения между формами -->
+        <div class="form-tabs">
+            <button class="form-tab active" onclick="switchTab('expense')">Добавить расход</button>
+            <button class="form-tab" onclick="switchTab('type')">Новый тип</button>
+        </div>
+        
+        <!-- Форма добавления общего расхода -->
+        <div class="form-section active" id="expenseForm">
+            <h3>Добавить общий расход (не привязанный к продаже)</h3>
+            <form method="POST" action="{{ url_for('add_general_expense') }}" onsubmit="handleFormSubmit(event)">
+                <label>
+                    Тип расхода:
+                    <select name="expense_type_id" required>
+                        {% for et in expense_types %}
+                            <option value="{{ et.id }}">{{ et.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
 
-        <p><label>Дата:<br>
-            <input type="date" name="date">
-        </label> (оставьте пустым для сегодня)</p>
+                <label>
+                    Сумма:
+                    <input type="number" step="0.01" name="amount" required>
+                </label>
 
+                <label>
+                    Город (опционально):
+                    <select name="city_id">
+                        <option value="none">Без города</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
 
-        <p><input type="submit" value="Добавить расход" style="font-size:18px; padding:10px; background:#f44336; color:white; border:none; border-radius:4px;"></p>
-    </form>
+                <label>
+                    Дата (оставьте пустым для сегодня):
+                    <input type="date" name="date">
+                </label>
 
-    <!-- Формы добавления справочников (как в других страницах) -->
-    <h3>Добавить новый тип расхода</h3>
-    <form method="POST" action="{{ url_for('add_expense_type') }}">
-        <input type="text" name="name" required placeholder="Название типа">
-        <input type="submit" value="Добавить тип расхода">
-    </form>
+                <input type="submit" value="Добавить расход" class="submit-red">
+            </form>
+        </div>
 
-    <p><a href="{{ url_for('sales') }}">← Вернуться к списку продаж</a></p>
+        <!-- Форма добавления нового типа расхода -->
+        <div class="form-section" id="typeForm">
+            <h3>Добавить новый тип расхода</h3>
+            <form method="POST" action="{{ url_for('add_expense_type') }}" onsubmit="handleFormSubmit(event)">
+                <label>
+                    Название типа:
+                    <input type="text" name="name" required placeholder="Название типа">
+                </label>
+                <input type="submit" value="Добавить тип расхода">
+            </form>
+        </div>
+    </div>
+</div>
 
-    <script>
-        function toggleCustom(val) {
-            document.getElementById('month-select').style.display = val === 'current_month' ? 'inline-block' : 'none';
-            document.getElementById('custom-dates').style.display = val === 'custom' ? 'inline-block' : 'none';
+<script>
+    function toggleCustom(val) {
+        document.getElementById('month-select').style.display = val === 'current_month' ? 'flex' : 'none';
+        document.getElementById('custom-dates').style.display = val === 'custom' ? 'flex' : 'none';
+    }
+    toggleCustom('{{ period_type }}');
+    
+    function toggleModal() {
+        const modal = document.getElementById('modalOverlay');
+        const button = document.getElementById('addButton');
+        modal.classList.toggle('active');
+        button.classList.toggle('active');
+    }
+    
+    function closeModalOnOverlay(event) {
+        if (event.target === event.currentTarget) {
+            toggleModal();
         }
-        toggleCustom('{{ period_type }}');
-    </script>
+    }
+    
+    function switchTab(tabName) {
+        // Переключение табов
+        const tabs = document.querySelectorAll('.form-tab');
+        const forms = document.querySelectorAll('.form-section');
+        
+        tabs.forEach(tab => tab.classList.remove('active'));
+        forms.forEach(form => form.classList.remove('active'));
+        
+        if (tabName === 'expense') {
+            tabs[0].classList.add('active');
+            document.getElementById('expenseForm').classList.add('active');
+        } else {
+            tabs[1].classList.add('active');
+            document.getElementById('typeForm').classList.add('active');
+        }
+    }
+    
+    function handleFormSubmit(event) {
+        // Форма отправится нормально, модальное окно закроется после перезагрузки страницы
+        // Если нужно закрыть сразу без перезагрузки, можно использовать fetch
+    }
+</script>
 {% endblock %}

@@ -192,6 +192,42 @@ def sales():
 
     # Общая прибыль (учитываем фильтр)
     total_profit = sum(s.profit for s in sales)
+    
+    # Расчет общих расходов за текущий месяц
+    today = date.today()
+    start_month = today.replace(day=1)
+    end_month = start_month + relativedelta(months=1)
+    
+    # Расходы из продаж за текущий месяц
+    # Приводим дату к типу date для корректного сравнения
+    def get_sale_date(sale):
+        return sale.date.date() if isinstance(sale.date, datetime) else sale.date
+    
+    sales_this_month = [s for s in sales if start_month <= get_sale_date(s) < end_month]
+    total_sale_expenses = sum(sum(e.amount for e in s.expenses) for s in sales_this_month)
+    
+    # Общие расходы за текущий месяц
+    general_expenses_query = GeneralExpense.query.filter(GeneralExpense.date >= start_month, GeneralExpense.date < end_month)
+    if city_filter != 'all':
+        city_obj = City.query.filter_by(name=city_filter).first()
+        if city_obj:
+            general_expenses_query = general_expenses_query.filter(GeneralExpense.city_id == city_obj.id)
+    general_expenses = general_expenses_query.all()
+    total_general_expenses = sum(g.amount for g in general_expenses)
+    
+    total_expenses = total_sale_expenses + total_general_expenses
+    
+    # Дополнительные метрики
+    count_sales = len(sales_this_month)
+    gross_income = sum(s.sell_price for s in sales_this_month)
+    total_buy = sum(s.buy_price for s in sales_this_month)
+    net_profit_month = gross_income - total_buy - total_expenses
+    
+    # Период для отображения
+    months_ru = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+    month_name = months_ru[start_month.month - 1]
+    period_label = f"{month_name} {start_month.year}"
 
     # Список всех уникальных городов для фильтра
     all_cities = sorted([c.name for c in City.query.all()])
@@ -201,7 +237,12 @@ def sales():
                            total_profit=round(total_profit, 2),
                            sort=sort,
                            city_filter=city_filter,
-                           all_cities=all_cities)
+                           all_cities=all_cities,
+                           total_expenses=round(total_expenses, 2),
+                           count_sales=count_sales,
+                           gross_income=round(gross_income, 2),
+                           net_profit_month=round(net_profit_month, 2),
+                           period_label=period_label)
 
 
 @app.route('/add_sale', methods=['GET', 'POST'])
