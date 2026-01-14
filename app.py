@@ -81,6 +81,38 @@ class GeneralExpense(db.Model):
     city = db.relationship('City', backref='general_expenses')
 
 
+class Investor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Investor {self.name}>'
+
+
+class StockItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
+    product_name = db.Column(db.String(200), nullable=False)
+    reference = db.Column(db.String(200))
+    buy_price = db.Column(db.Float, nullable=False)
+    expected_sell_price = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    photo = db.Column(db.String(200))
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+
+    city = db.relationship('City', backref='stock_items')
+    investor = db.relationship('Investor', backref='stock_items')
+
+    @property
+    def total_invested(self):
+        return self.buy_price * self.quantity
+
+    @property
+    def expected_profit(self):
+        return (self.expected_sell_price - self.buy_price) * self.quantity
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
@@ -90,8 +122,131 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# НОВАЯ ГЛАВНАЯ СТРАНИЦА (DASHBOARD)
-@app.route('/', methods=['GET', 'POST'])
+# ГЛАВНАЯ СТРАНИЦА (MAIN) - корневой маршрут
+@app.route('/')
+@app.route('/main')
+def main():
+    return render_template('main.html')
+
+
+# СТРАНИЦА СТОКА
+@app.route('/stock')
+def stock():
+    # Подсчитываем данные из таблицы StockItem
+    all_stock_items = StockItem.query.all()
+    total_invested = sum(item.total_invested for item in all_stock_items)
+    stock_positions = sum(item.quantity for item in all_stock_items)
+    expected_profit = sum(item.expected_profit for item in all_stock_items)
+    
+    return render_template('stock.html',
+                           total_invested=total_invested,
+                           stock_positions=stock_positions,
+                           expected_profit=expected_profit)
+
+
+# СТРАНИЦА "ВСЕ ГОРОДА" ДЛЯ СТОКА
+@app.route('/stock_cities')
+def stock_cities():
+    # Получаем все города, у которых есть сток
+    cities = City.query.all()
+    cities_data = {}
+    
+    for city in cities:
+        stock_items = StockItem.query.filter_by(city_id=city.id).all()
+        if stock_items:  # Показываем только города с стоком
+            total_invested = sum(item.total_invested for item in stock_items)
+            stock_positions = sum(item.quantity for item in stock_items)
+            expected_profit = sum(item.expected_profit for item in stock_items)
+            
+            cities_data[city.name] = {
+                'positions': stock_positions,
+                'invested': total_invested,
+                'expected_profit': expected_profit
+            }
+    
+    # Сортируем города по названию
+    sorted_cities = sorted(cities_data.items())
+    
+    return render_template('stock_cities.html', cities_data=dict(sorted_cities))
+
+
+# СТРАНИЦА ДЕТАЛЬНОГО СТОКА ПО ГОРОДУ
+@app.route('/stock_city/<city_name>')
+def stock_city_detail(city_name):
+    # Находим город
+    city = City.query.filter_by(name=city_name).first_or_404()
+    
+    # Получаем все товары в стоке для этого города
+    stock_items = StockItem.query.filter_by(city_id=city.id).all()
+    
+    # Подсчитываем общую статистику
+    total_invested = sum(item.total_invested for item in stock_items)
+    stock_positions = sum(item.quantity for item in stock_items)
+    expected_profit = sum(item.expected_profit for item in stock_items)
+    
+    return render_template('stock_city_detail.html',
+                           city=city,
+                           stock_items=stock_items,
+                           total_invested=total_invested,
+                           stock_positions=stock_positions,
+                           expected_profit=expected_profit)
+
+
+# СТРАНИЦА "ВСЕ ИНВЕСТОРЫ" ДЛЯ СТОКА
+@app.route('/stock_investors')
+def stock_investors():
+    # Получаем всех инвесторов, у которых есть сток
+    investors = Investor.query.all()
+    investors_data = {}
+    
+    for investor in investors:
+        stock_items = StockItem.query.filter_by(investor_id=investor.id).all()
+        if stock_items:  # Показываем только инвесторов с стоком
+            total_invested = sum(item.total_invested for item in stock_items)
+            stock_positions = sum(item.quantity for item in stock_items)
+            expected_profit = sum(item.expected_profit for item in stock_items)
+            
+            # Получаем список уникальных городов для этого инвестора
+            cities = sorted(set([item.city.name for item in stock_items]))
+            cities_str = ', '.join(cities)
+            
+            investors_data[investor.name] = {
+                'positions': stock_positions,
+                'invested': total_invested,
+                'expected_profit': expected_profit,
+                'cities': cities_str
+            }
+    
+    # Сортируем инвесторов по названию
+    sorted_investors = sorted(investors_data.items())
+    
+    return render_template('stock_investors.html', investors_data=dict(sorted_investors))
+
+
+# СТРАНИЦА ДЕТАЛЬНОГО СТОКА ПО ИНВЕСТОРУ
+@app.route('/stock_investor/<investor_name>')
+def stock_investor_detail(investor_name):
+    # Находим инвестора
+    investor = Investor.query.filter_by(name=investor_name).first_or_404()
+    
+    # Получаем все товары в стоке для этого инвестора
+    stock_items = StockItem.query.filter_by(investor_id=investor.id).all()
+    
+    # Подсчитываем общую статистику
+    total_invested = sum(item.total_invested for item in stock_items)
+    stock_positions = sum(item.quantity for item in stock_items)
+    expected_profit = sum(item.expected_profit for item in stock_items)
+    
+    return render_template('stock_investor_detail.html',
+                           investor=investor,
+                           stock_items=stock_items,
+                           total_invested=total_invested,
+                           stock_positions=stock_positions,
+                           expected_profit=expected_profit)
+
+
+# СТРАНИЦА DASHBOARD (старая главная)
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     # Получаем параметры периода
     period_type = request.args.get('period_type', 'current_month')  # current_month, custom
@@ -335,6 +490,55 @@ def add_sale():
     return render_template('add_sale.html', cities=cities, expense_types=expense_types, employees=employees)
 
 
+@app.route('/add_stock', methods=['GET', 'POST'])
+def add_stock():
+    cities = City.query.all()
+    expense_types = ExpenseType.query.all()
+    investors = Investor.query.all()
+
+    if request.method == 'POST':
+        product_name = request.form['product_name']
+        reference = request.form.get('reference', '')
+        buy_price = float(request.form['buy_price'])
+        expected_sell_price = float(request.form['expected_sell_price'])
+        city_id = int(request.form['city_id'])
+        investor_id = int(request.form['investor_id'])
+
+        photo_path = None
+        photo = request.files['photo']
+        if photo and allowed_file(photo.filename):
+            filename = secure_filename(photo.filename)
+            photo_path = filename
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        new_stock = StockItem(
+            photo=photo_path,
+            product_name=product_name,
+            reference=reference,
+            buy_price=buy_price,
+            expected_sell_price=expected_sell_price,
+            city_id=city_id,
+            investor_id=investor_id
+        )
+        db.session.add(new_stock)
+        db.session.commit()
+
+        # Добавление расходов (если будут нужны в будущем)
+        # expense_type_ids = request.form.getlist('expense_type_id')
+        # amounts = request.form.getlist('expense_amount')
+        # comments = request.form.getlist('expense_comment')
+        # for et_id, amt, comment in zip(expense_type_ids, amounts, comments):
+        #     if et_id and amt:
+        #         # Можно создать отдельную таблицу StockExpense если нужно
+        #         pass
+
+        db.session.commit()
+        flash('Сток добавлен!', 'success')
+        return redirect(url_for('stock'))
+
+    return render_template('add_stock.html', cities=cities, expense_types=expense_types, investors=investors)
+
+
 @app.route('/edit_sale/<int:sale_id>', methods=['GET', 'POST'])
 def edit_sale(sale_id):
     sale = Sale.query.get_or_404(sale_id)
@@ -554,6 +758,19 @@ def add_employee():
     else:
         flash('Пустое имя.', 'error')
     return redirect(request.referrer or url_for('add_sale'))
+
+
+@app.route('/add_investor', methods=['POST'])
+def add_investor():
+    name = request.form['name'].strip()
+    if name and not Investor.query.filter_by(name=name).first():
+        new_investor = Investor(name=name)
+        db.session.add(new_investor)
+        db.session.commit()
+        flash('Инвестор добавлен!', 'success')
+    else:
+        flash('Инвестор уже существует или пустое имя.', 'error')
+    return redirect(request.referrer or url_for('add_stock'))
 
 
 @app.route('/all_sales_summary')
