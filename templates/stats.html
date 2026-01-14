@@ -5,19 +5,32 @@
         max-width: 500px;
         margin: 0 auto;
         padding: 20px;
-        padding-top: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
     }
     
-    /* Иконка сверху */
+    /* Иконка сверху - фиксированная */
     .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 120px;
         height: 120px;
-        margin: 0 auto 20px;
+        margin: 0;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
     }
     
     .logo-icon img {
@@ -25,6 +38,7 @@
         height: 100%;
         object-fit: contain;
         border-radius: 50%;
+        cursor: pointer;
     }
     
     /* Карточка периода */
@@ -69,11 +83,21 @@
         color: #333;
     }
     
-    /* Список расходов по категориям */
+    /* Список расходов по датам */
     .expense-list {
-        list-style: none;
-        padding: 0;
         margin: 0 0 30px 0;
+    }
+    
+    .expense-date-group {
+        margin-bottom: 25px;
+    }
+    
+    .expense-date-header {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+        padding-left: 5px;
     }
     
     .expense-item {
@@ -83,18 +107,53 @@
         margin-bottom: 15px;
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         font-size: 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+        position: relative;
+    }
+    
+    .expense-item:hover {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .expense-item > div:first-child {
+        flex: 1;
+        min-width: 0;
+        padding-right: 15px;
     }
     
     .expense-item strong {
         color: #333;
         font-weight: 500;
+        display: block;
     }
     
     .expense-item .amount {
         color: #333;
         font-weight: bold;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .expense-comment {
+        display: none;
+        margin-top: 10px;
+        padding: 10px 15px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        font-size: 14px;
+        color: #666;
+        font-style: italic;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        max-width: 100%;
+    }
+    
+    .expense-item.active .expense-comment {
+        display: block;
     }
     
     .expense-empty {
@@ -341,11 +400,7 @@
     @media (min-width: 768px) {
         .stats-container {
             max-width: 600px;
-            padding-top: 40px;
-        }
-        
-        .logo-icon {
-            margin-top: 0;
+            padding-top: 90px;
         }
         
         .add-button {
@@ -368,9 +423,11 @@
 </style>
 
 <div class="stats-container">
-    <!-- Иконка -->
+    <!-- Иконка - фиксированная -->
     <div class="logo-icon">
-        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+        <a href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+        </a>
     </div>
     
     <!-- Выбор периода -->
@@ -429,17 +486,32 @@
         <p>Расходы</p>
     </div>
 
-    <!-- Расходы по категориям -->
-    <ul class="expense-list">
-        {% for et, amount in expense_by_type %}
-            <li class="expense-item">
-                <strong>{{ et }}</strong>
-                <span class="amount">{{ "%.0f"|format(amount) }}$</span>
-            </li>
+    <!-- Расходы по датам -->
+    <div class="expense-list">
+        {% if expenses_by_date %}
+            {% for exp_date, expenses in expenses_by_date %}
+            <div class="expense-date-group">
+                <div class="expense-date-header">
+                    {% set months_ru_short = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'] %}
+                    {{ exp_date.day }} {{ months_ru_short[exp_date.month - 1] }}
+                </div>
+                {% for expense in expenses %}
+                <div class="expense-item" onclick="this.classList.toggle('active')">
+                    <div>
+                        <strong>{{ expense.type }}</strong>
+                        {% if expense.description %}
+                        <div class="expense-comment">{{ expense.description }}</div>
+                        {% endif %}
+                    </div>
+                    <span class="amount">{{ "%.0f"|format(expense.amount) }}$</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
         {% else %}
-            <li class="expense-empty">Пока нет расходов</li>
-        {% endfor %}
-    </ul>
+            <div class="expense-empty">Пока нет расходов</div>
+        {% endif %}
+    </div>
 
 <!--    <a href="{{ url_for('sales') }}" class="back-link">← Вернуться к списку продаж</a>-->
 </div>
@@ -489,6 +561,11 @@
                 <label>
                     Дата (оставьте пустым для сегодня):
                     <input type="date" name="date">
+                </label>
+
+                <label>
+                    Комментарий:
+                    <input type="text" name="description" placeholder="Введите комментарий (необязательно)">
                 </label>
 
                 <input type="submit" value="Добавить расход" class="submit-red">

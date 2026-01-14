@@ -42,6 +42,7 @@ class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     photo = db.Column(db.String(200))
     product_name = db.Column(db.String(200), nullable=False)
+    reference = db.Column(db.String(200))
     buy_price = db.Column(db.Float, nullable=False)
     sell_price = db.Column(db.Float, nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
@@ -63,6 +64,7 @@ class Expense(db.Model):
     sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
     expense_type_id = db.Column(db.Integer, db.ForeignKey('expense_type.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.String(200))
 
     expense_type = db.relationship('ExpenseType', backref='expenses')
 
@@ -160,6 +162,8 @@ def sales():
     # Параметры из запроса
     sort = request.args.get('sort', 'date_desc')
     city_filter = request.args.get('city', 'all')  # 'all' или название города
+    year_filter = request.args.get('year', 'all')
+    month_filter = request.args.get('month', 'all')
 
     # Базовый запрос
     sales_query = Sale.query
@@ -167,6 +171,27 @@ def sales():
     # Фильтр по городу
     if city_filter != 'all':
         sales_query = sales_query.join(City).filter(City.name == city_filter)
+
+    # Фильтр по году и месяцу
+    if year_filter != 'all':
+        try:
+            year_int = int(year_filter)
+            if month_filter != 'all':
+                try:
+                    month_int = int(month_filter)
+                    start_date = date(year_int, month_int, 1)
+                    end_date = start_date + relativedelta(months=1)
+                    sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+                except:
+                    start_date = date(year_int, 1, 1)
+                    end_date = date(year_int + 1, 1, 1)
+                    sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+            else:
+                start_date = date(year_int, 1, 1)
+                end_date = date(year_int + 1, 1, 1)
+                sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+        except:
+            pass
 
     # Сортировка
     if sort == 'date_asc':
@@ -193,10 +218,21 @@ def sales():
     # Общая прибыль (учитываем фильтр)
     total_profit = sum(s.profit for s in sales)
     
-    # Расчет общих расходов за текущий месяц
-    today = date.today()
-    start_month = today.replace(day=1)
-    end_month = start_month + relativedelta(months=1)
+    # Расчет общих расходов за выбранный период
+    if year_filter != 'all' and month_filter != 'all':
+        try:
+            year_int = int(year_filter)
+            month_int = int(month_filter)
+            start_month = date(year_int, month_int, 1)
+            end_month = start_month + relativedelta(months=1)
+        except:
+            today = date.today()
+            start_month = today.replace(day=1)
+            end_month = start_month + relativedelta(months=1)
+    else:
+        today = date.today()
+        start_month = today.replace(day=1)
+        end_month = start_month + relativedelta(months=1)
     
     # Расходы из продаж за текущий месяц
     # Приводим дату к типу date для корректного сравнения
@@ -231,13 +267,22 @@ def sales():
 
     # Список всех уникальных городов для фильтра
     all_cities = sorted([c.name for c in City.query.all()])
+    
+    # Список всех годов для фильтра
+    all_years = sorted(set(s.date.year for s in Sale.query.with_entities(Sale.date).all()), reverse=True)
+    if not all_years:
+        all_years = [date.today().year]
 
     return render_template('index.html',
                            sales=sales,
                            total_profit=round(total_profit, 2),
                            sort=sort,
                            city_filter=city_filter,
+                           year_filter=year_filter if year_filter != 'all' else 'all',
+                           month_filter=month_filter if month_filter != 'all' else 'all',
                            all_cities=all_cities,
+                           all_years=all_years,
+                           months_ru=months_ru,
                            total_expenses=round(total_expenses, 2),
                            count_sales=count_sales,
                            gross_income=round(gross_income, 2),
@@ -253,6 +298,7 @@ def add_sale():
 
     if request.method == 'POST':
         product_name = request.form['product_name']
+        reference = request.form.get('reference', '')
         buy_price = float(request.form['buy_price'])
         sell_price = float(request.form['sell_price'])
         city_id = int(request.form['city_id'])
@@ -267,7 +313,7 @@ def add_sale():
             photo_path = filename
             photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        new_sale = Sale(photo=photo_path, product_name=product_name,
+        new_sale = Sale(photo=photo_path, product_name=product_name, reference=reference,
                         buy_price=buy_price, sell_price=sell_price,
                         city_id=city_id, employee_id=employee_id, date=date)
         db.session.add(new_sale)
@@ -276,9 +322,10 @@ def add_sale():
         # Добавление расходов
         expense_type_ids = request.form.getlist('expense_type_id')
         amounts = request.form.getlist('expense_amount')
-        for et_id, amt in zip(expense_type_ids, amounts):
+        comments = request.form.getlist('expense_comment')
+        for et_id, amt, comment in zip(expense_type_ids, amounts, comments):
             if et_id and amt:
-                expense = Expense(sale_id=new_sale.id, expense_type_id=int(et_id), amount=float(amt))
+                expense = Expense(sale_id=new_sale.id, expense_type_id=int(et_id), amount=float(amt), comment=comment if comment else None)
                 db.session.add(expense)
 
         db.session.commit()
@@ -297,6 +344,7 @@ def edit_sale(sale_id):
 
     if request.method == 'POST':
         sale.product_name = request.form['product_name']
+        sale.reference = request.form.get('reference', '')
         sale.buy_price = float(request.form['buy_price'])
         sale.sell_price = float(request.form['sell_price'])
         sale.city_id = int(request.form['city_id'])
@@ -380,20 +428,39 @@ def stats():
     sales = sales_query.all()
     general_expenses = general_exp_query.all()
 
-    # Расчёты расходов
-    expense_by_type = {}
-    # Из продаж
+    # Группируем расходы по датам
+    expenses_by_date = {}
+    total_expenses = 0
+    
+    # Расходы из продаж (используем дату продажи)
     for s in sales:
+        sale_date = s.date.date() if isinstance(s.date, datetime) else s.date
+        if sale_date not in expenses_by_date:
+            expenses_by_date[sale_date] = []
         for e in s.expenses:
-            et_name = e.expense_type.name
-            expense_by_type[et_name] = expense_by_type.get(et_name, 0) + e.amount
-    # Общие расходы
+            expenses_by_date[sale_date].append({
+                'type': e.expense_type.name,
+                'amount': e.amount,
+                'description': e.comment,  # Комментарий из расходов продажи
+                'is_sale_expense': True
+            })
+            total_expenses += e.amount
+    
+    # Общие расходы (используем дату расхода)
     for g in general_expenses:
-        et_name = g.expense_type.name
-        expense_by_type[et_name] = expense_by_type.get(et_name, 0) + g.amount
-
-    sorted_expenses = sorted(expense_by_type.items(), key=lambda x: x[1], reverse=True)
-    total_expenses = sum(expense_by_type.values())
+        exp_date = g.date.date() if isinstance(g.date, datetime) else g.date
+        if exp_date not in expenses_by_date:
+            expenses_by_date[exp_date] = []
+        expenses_by_date[exp_date].append({
+            'type': g.expense_type.name,
+            'amount': g.amount,
+            'description': g.description,  # Комментарий для общих расходов
+            'is_sale_expense': False
+        })
+        total_expenses += g.amount
+    
+    # Сортируем даты по убыванию (новые сначала)
+    sorted_expenses_by_date = sorted(expenses_by_date.items(), key=lambda x: x[0], reverse=True)
 
     # Общая чистая прибыль (для полноты, но фокус на расходах)
     gross_income = sum(s.sell_price for s in sales)
@@ -419,7 +486,7 @@ def stats():
 
     return render_template('stats.html',
                            total_expenses=round(total_expenses, 2),
-                           expense_by_type=sorted_expenses,
+                           expenses_by_date=sorted_expenses_by_date,
                            period_label=period_label,
                            all_years=all_years,
                            selected_year=start.year,
@@ -493,17 +560,27 @@ def add_employee():
 def all_sales_summary():
     # Получаем параметры фильтрации
     year_filter = request.args.get('year', 'all')
+    month_filter = request.args.get('month', 'all')
     city_filter = request.args.get('city', 'all')
 
     # Базовый запрос
     sales_query = Sale.query
 
-    # Фильтр по году
+    # Фильтр по году и месяцу
     if year_filter != 'all':
         try:
             year_int = int(year_filter)
-            start_date = date(year_int, 1, 1)
-            end_date = date(year_int + 1, 1, 1)
+            if month_filter != 'all':
+                try:
+                    month_int = int(month_filter)
+                    start_date = date(year_int, month_int, 1)
+                    end_date = start_date + relativedelta(months=1)
+                except:
+                    start_date = date(year_int, 1, 1)
+                    end_date = date(year_int + 1, 1, 1)
+            else:
+                start_date = date(year_int, 1, 1)
+                end_date = date(year_int + 1, 1, 1)
             sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
         except:
             pass
@@ -515,11 +592,14 @@ def all_sales_summary():
     # Получаем все продажи
     all_sales = sales_query.all()
 
-    # Группируем данные по городам
+    # Группируем данные по городам и месяцам
     cities_data = {}
 
     for sale in all_sales:
         city_name = sale.city.name
+        sale_date = sale.date.date() if isinstance(sale.date, datetime) else sale.date
+        sale_month = sale_date.month
+        sale_year = sale_date.year
         
         if city_name not in cities_data:
             cities_data[city_name] = {
@@ -527,11 +607,12 @@ def all_sales_summary():
                 'total_buy': 0,
                 'total_sell': 0,
                 'total_expenses': 0,
-                'gross_profit': 0,  # Грязная прибыль (продажа - покупка)
-                'net_profit': 0  # Чистая прибыль (продажа - покупка - расходы)
+                'gross_profit': 0,
+                'net_profit': 0,
+                'months': {}  # Группировка по месяцам
             }
 
-        # Обновляем статистику
+        # Обновляем статистику города
         data = cities_data[city_name]
         data['count'] += 1
         data['total_buy'] += sale.buy_price
@@ -540,18 +621,46 @@ def all_sales_summary():
         # Расходы этой продажи
         sale_expenses = sum(e.amount for e in sale.expenses)
         data['total_expenses'] += sale_expenses
-
-        # Прибыли
-        data['gross_profit'] += (sale.sell_price - sale.buy_price)
-        data['net_profit'] += (sale.sell_price - sale.buy_price - sale_expenses)
+        
+        # Группировка по месяцам
+        month_key = f"{sale_year}-{sale_month:02d}"
+        if month_key not in data['months']:
+            data['months'][month_key] = {
+                'count': 0,
+                'gross_profit': 0,
+                'net_profit': 0,
+                'month': sale_month,
+                'year': sale_year
+            }
+        
+        month_data = data['months'][month_key]
+        month_data['count'] += 1
+        month_data['gross_profit'] += (sale.sell_price - sale.buy_price)
+        month_data['net_profit'] += (sale.sell_price - sale.buy_price - sale_expenses)
     
-    # Определяем период для отображения
-    period_label = "Все периоды"
-    if year_filter != 'all':
+    # Вычисляем итоговые прибыли и сортируем месяцы для каждого города
+    for city_name, data in cities_data.items():
+        data['gross_profit'] = data['total_sell'] - data['total_buy']
+        data['net_profit'] = data['gross_profit'] - data['total_expenses']
+        data['months'] = dict(sorted(data['months'].items(), reverse=True))
+    
+    # Период для отображения
+    months_ru = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+    period_label = "Все продажи"
+    if year_filter != 'all' and month_filter != 'all':
+        try:
+            month_name = months_ru[int(month_filter) - 1]
+            period_label = f"{month_name} {year_filter}"
+        except:
+            period_label = f"{year_filter} год"
+    elif year_filter != 'all':
         period_label = f"{year_filter} год"
 
     # Список годов для фильтра
-    all_years = sorted(set(s.date.year for s in Sale.query.all()), reverse=True)
+    all_years = sorted(set(s.date.year for s in Sale.query.with_entities(Sale.date).all()), reverse=True)
+    if not all_years:
+        all_years = [date.today().year]
     all_cities = sorted([c.name for c in City.query.all()])
 
     return render_template('all_sales_summary.html',
@@ -559,8 +668,10 @@ def all_sales_summary():
                            all_years=all_years,
                            all_cities=all_cities,
                            selected_year=year_filter,
+                           selected_month=month_filter,
                            selected_city=city_filter,
-                           period_label=period_label)
+                           period_label=period_label,
+                           months_ru=months_ru)
 
 
 if __name__ == '__main__':

@@ -5,19 +5,32 @@
         max-width: 500px;
         margin: 0 auto;
         padding: 20px;
-        padding-top: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
     }
     
-    /* Логотип */
+    /* Логотип - фиксированный */
     .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 120px;
         height: 120px;
-        margin: 0 auto 20px;
+        margin: 0;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
     }
     
     .logo-icon img {
@@ -25,6 +38,7 @@
         height: 100%;
         object-fit: contain;
         border-radius: 50%;
+        cursor: pointer;
     }
     
     .page-title {
@@ -413,14 +427,23 @@
         border: none;
         cursor: pointer;
     }
+    
+    @media (min-width: 768px) {
+        .add-sale-container {
+            max-width: 600px;
+            padding-top: 90px;
+        }
+    }
 </style>
 
-<div class="add-sale-container">
-    <!-- Логотип -->
-    <div class="logo-icon">
+<!-- Логотип - фиксированный -->
+<div class="logo-icon">
+    <a href="{{ url_for('dashboard') }}">
         <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
-    </div>
-    
+    </a>
+</div>
+
+<div class="add-sale-container">
     <div style="text-align: center; margin-bottom: 30px;">
         <h1 class="page-title">Добавление продажи</h1>
     </div>
@@ -443,6 +466,16 @@
                 <label class="field-label">Наименование</label>
                 <div class="field-input-wrapper">
                     <input type="text" name="product_name" required placeholder="Введи наименование">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reference -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Reference</label>
+                <div class="field-input-wrapper">
+                    <input type="text" name="reference" placeholder="Введи Reference">
                 </div>
             </div>
         </div>
@@ -525,6 +558,14 @@
                     <div class="modal-input-card">
                         <div class="modal-input-wrapper">
                             <input type="number" step="0.01" id="expense-amount-input" placeholder="Введи сумму">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label class="modal-field-label">Комментарий (необязательно)</label>
+                    <div class="modal-input-card">
+                        <div class="modal-input-wrapper">
+                            <input type="text" id="expense-comment-input" placeholder="Введите комментарий">
                         </div>
                     </div>
                 </div>
@@ -632,6 +673,7 @@
         document.getElementById('expense-modal').classList.add('active');
         document.getElementById('expense-type-select').value = '';
         document.getElementById('expense-amount-input').value = '';
+        document.getElementById('expense-comment-input').value = '';
     }
     
     // Закрытие модального окна
@@ -646,6 +688,7 @@
         const typeId = typeSelect.value;
         const typeName = selectedOption ? selectedOption.getAttribute('data-name') || selectedOption.text : '';
         const amount = parseFloat(document.getElementById('expense-amount-input').value);
+        const comment = document.getElementById('expense-comment-input').value.trim();
         
         if (!typeId || !amount || amount <= 0) {
             alert('Заполните все поля корректно');
@@ -656,7 +699,8 @@
         expenses.push({
             typeId: typeId,
             name: typeName,
-            amount: amount
+            amount: amount,
+            comment: comment
         });
         
         // Обновляем отображение
@@ -704,8 +748,14 @@
             amountInput.name = 'expense_amount';
             amountInput.value = expense.amount;
             
+            const commentInput = document.createElement('input');
+            commentInput.type = 'hidden';
+            commentInput.name = 'expense_comment';
+            commentInput.value = expense.comment || '';
+            
             hiddenInputs.appendChild(typeInput);
             hiddenInputs.appendChild(amountInput);
+            hiddenInputs.appendChild(commentInput);
         });
     }
     

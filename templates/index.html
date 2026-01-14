@@ -5,19 +5,32 @@
         max-width: 500px;
         margin: 0 auto;
         padding: 20px;
-        padding-top: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
     }
     
-    /* Иконка сверху */
+    /* Иконка сверху - фиксированная */
     .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 120px;
         height: 120px;
-        margin: 0 auto 20px;
+        margin: 0;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
     }
     
     .logo-icon img {
@@ -25,6 +38,7 @@
         height: 100%;
         object-fit: contain;
         border-radius: 50%;
+        cursor: pointer;
     }
     
     /* Карточка периода */
@@ -44,23 +58,33 @@
         box-sizing: border-box;
     }
     
-    /* Фильтр по городу */
+    /* Фильтры */
     .city-filter {
         text-align: center;
         margin-bottom: 20px;
     }
     
     .city-filter form {
-        display: inline-block;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         background: rgba(255, 255, 255, 0.7);
-        padding: 10px 20px;
+        padding: 15px 20px;
         border-radius: 15px;
+    }
+    
+    .city-filter .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
     
     .city-filter label {
         font-weight: 500;
         color: #333;
-        margin-right: 10px;
+        white-space: nowrap;
+        min-width: 70px;
+        text-align: left;
     }
     
     .city-filter select {
@@ -69,6 +93,8 @@
         border: 1px solid #ddd;
         font-size: 14px;
         background: white;
+        flex: 1;
+        min-width: 0;
     }
     
     /* Две карточки метрик */
@@ -310,11 +336,11 @@
     @media (min-width: 768px) {
         .index-container {
             max-width: 600px;
-            padding-top: 40px;
+            padding-top: 90px;
         }
         
-        .logo-icon {
-            margin-top: 0;
+        .city-filter .filter-row {
+            width: 100%;
         }
         
         .metric-card h2 {
@@ -338,22 +364,45 @@
 </style>
 
 <div class="index-container">
-    <!-- Иконка -->
+    <!-- Иконка - фиксированная -->
     <div class="logo-icon">
-        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+        <a href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+        </a>
     </div>
     
-    <!-- Фильтр по городу -->
+    <!-- Фильтры -->
     <div class="city-filter">
         <form method="GET">
-            <label><strong>Город:</strong>
+            <div class="filter-row">
+                <label><strong>Год:</strong></label>
+                <select name="year" onchange="this.form.submit()">
+                    <option value="all">Все годы</option>
+                    {% for year in all_years %}
+                        <option value="{{ year }}" {% if year_filter == year|string %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-row">
+                <label><strong>Месяц:</strong></label>
+                <select name="month" onchange="this.form.submit()">
+                    <option value="all">Все месяцы</option>
+                    {% for m in range(1,13) %}
+                        <option value="{{ m }}" {% if month_filter == m|string %}selected{% endif %}>{{ months_ru[m-1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-row">
+                <label><strong>Город:</strong></label>
                 <select name="city" onchange="this.form.submit()">
                     <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
                     {% for city in all_cities %}
                         <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
                     {% endfor %}
                 </select>
-            </label>
+            </div>
             <input type="hidden" name="sort" value="{{ sort }}">
         </form>
     </div>
@@ -370,7 +419,7 @@
             <p>Реализовано</p>
         </div>
         <div class="metric-card">
-            <h2>+{{ "%.0f"|format(gross_income) }}$</h2>
+            <h2>{{ "%.0f"|format(gross_income) }}$</h2>
             <p>Доход</p>
         </div>
     </div>
@@ -386,7 +435,7 @@
 
     <!-- Карточка прибыли -->
     <div class="profit-card">
-        <h2>{% if net_profit_month >= 0 %}+{% endif %}{{ "%.0f"|format(net_profit_month) }}$</h2>
+        <h2>{{ "%.0f"|format(net_profit_month) }}$</h2>
         <p>Прибыль с вычетом расходов</p>
     </div>
 
@@ -402,12 +451,24 @@
                     <img src="{{ url_for('uploaded_file', filename=s.photo) }}" alt="фото" class="sale-card-image">
                 {% else %}
                     <div class="sale-card-image" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 15px;">
-                        Нет фото
+                    Нет фото
                     </div>
                 {% endif %}
             </div>
             
             <div class="sale-card-content">
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Наименование</span>
+                    <span class="sale-data-value">{{ s.product_name }}</span>
+                </div>
+                
+                {% if s.reference %}
+                <div class="sale-data-row">
+                    <span class="sale-data-label">Reference</span>
+                    <span class="sale-data-value">{{ s.reference }}</span>
+                </div>
+                {% endif %}
+                
                 <div class="sale-data-row">
                     <span class="sale-data-label">Город</span>
                     <span class="sale-data-value">{{ s.city.name }}</span>
@@ -436,12 +497,12 @@
                 
                 {% if s.expenses %}
                 <div class="expenses-in-card">
-                    {% for exp in s.expenses %}
+                            {% for exp in s.expenses %}
                     <div class="expense-item-in-card">
                         <strong>{{ exp.expense_type.name }}</strong>
                         <span class="amount">{{ "%.0f"|format(exp.amount) }}$</span>
                     </div>
-                    {% endfor %}
+                            {% endfor %}
                 </div>
                 {% endif %}
                 
