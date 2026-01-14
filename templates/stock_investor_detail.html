@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .stock-detail-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
+    }
+    
+    /* Иконка сверху - фиксированная */
+    .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 120px;
+        margin: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    
+    /* Фильтр инвестора */
+    .investor-filter-bar {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Большая карточка с суммой */
+    .stock-main-card {
+        background: #514D4A;
+        color: white;
+        padding: 30px 25px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .stock-main-card .amount {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 0;
+        color: white;
+    }
+    
+    .stock-main-card .label {
+        font-size: 14px;
+        margin: 10px 0 0;
+        opacity: 0.9;
+        color: white;
+    }
+    
+    /* Две маленькие карточки */
+    .stock-info-cards {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stock-info-card {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 20px;
+        border-radius: 20px;
+        text-align: center;
+    }
+    
+    .stock-info-card .number {
+        font-size: 32px;
+        font-weight: bold;
+        margin: 0;
+        color: #333;
+    }
+    
+    .stock-info-card .label {
+        font-size: 14px;
+        color: #333;
+        margin: 8px 0 0;
+    }
+    
+    /* Заголовок секции */
+    .section-header {
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    /* Карточка товара */
+    .stock-item-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .stock-item-image-wrapper {
+        padding: 15px;
+        background: white;
+        min-height: 500px;
+    }
+    
+    .stock-item-image {
+        width: 100%;
+        height: 100%;
+        min-height: 470px;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+        background: #f8f8f8;
+        border-radius: 15px;
+    }
+    
+    .stock-item-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .stock-item-field:last-of-type {
+        border-bottom: none;
+    }
+    
+    .stock-item-label {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .stock-item-value {
+        font-size: 14px;
+        color: #333;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 4px 12px;
+        border-radius: 15px;
+    }
+    
+    .stock-item-price {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    /* Карточка ожидаемой прибыли */
+    .profit-card {
+        background: rgba(139, 115, 85, 0.2);
+        border-radius: 15px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .profit-card .stock-item-field {
+        border-bottom: none;
+        padding: 5px 0;
+    }
+    
+    .profit-card .stock-item-label {
+        font-weight: 600;
+    }
+    
+    .profit-card .stock-item-price {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    /* Кнопки */
+    .stock-item-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .action-btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: 15px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .action-btn-primary {
+        background: #B58358;
+        color: white;
+    }
+    
+    .action-btn-primary:hover {
+        background: #9d7149;
+    }
+    
+    .action-btn-secondary {
+        background: rgba(255, 255, 255, 0.5);
+        color: #333;
+        border: 1px solid #B58358;
+    }
+    
+    .action-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Кнопка добавить сток */
+    .add-stock-btn {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 500;
+        background: rgba(255, 255, 255, 0.5);
+        color: #333;
+        border: 1px solid #B58358;
+        margin-top: 20px;
+        transition: all 0.2s ease;
+    }
+    
+    .add-stock-btn:hover {
+        background: rgba(255, 255, 255, 0.7);
+    }
+    
+    @media (min-width: 768px) {
+        .stock-detail-container {
+            max-width: 600px;
+            padding-top: 90px;
+        }
+        
+        .stock-main-card .amount {
+            font-size: 52px;
+        }
+        
+        .stock-info-card .number {
+            font-size: 40px;
+        }
+    }
+</style>
+
+<!-- Иконка - фиксированная -->
+<div class="logo-icon">
+    <a href="{{ url_for('main') }}">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </a>
+</div>
+
+<div class="stock-detail-container">
+    <!-- Фильтр инвестора -->
+    <div class="investor-filter-bar">
+        Сток {{ investor.name }}
+    </div>
+    
+    <!-- Большая карточка с суммой -->
+    <div class="stock-main-card">
+        <div class="amount">{{ "%.0f"|format(total_invested) }}$</div>
+        <div class="label">Сумма вложенных денег в сток</div>
+    </div>
+    
+    <!-- Две маленькие карточки -->
+    <div class="stock-info-cards">
+        <div class="stock-info-card">
+            <div class="number">{{ stock_positions }}</div>
+            <div class="label">Позиций в стоке</div>
+        </div>
+        <div class="stock-info-card">
+            <div class="number">{{ "%.0f"|format(expected_profit) }}$</div>
+            <div class="label">Ожидаемая прибыль</div>
+        </div>
+    </div>
+    
+    <!-- Заголовок секции -->
+    <h2 class="section-header">Стоковые позиции</h2>
+    
+    <!-- Карточки товаров -->
+    {% for item in stock_items %}
+    <div class="stock-item-card">
+        <div class="stock-item-image-wrapper">
+            {% if item.photo %}
+                <img src="{{ url_for('uploaded_file', filename=item.photo) }}" alt="{{ item.product_name }}" class="stock-item-image">
+            {% else %}
+                <div class="stock-item-image" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 15px;">
+                    Нет фото
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="stock-item-field">
+            <span class="stock-item-label">Город</span>
+            <span class="stock-item-value">{{ item.city.name }}</span>
+        </div>
+        
+        <div class="stock-item-field">
+            <span class="stock-item-label">Owner</span>
+            <span class="stock-item-value">{{ item.investor.name }}</span>
+        </div>
+        
+        <div class="stock-item-field">
+            <span class="stock-item-label">Покупка</span>
+            <span class="stock-item-price">{{ "%.0f"|format(item.buy_price) }}$</span>
+        </div>
+        
+        <div class="stock-item-field">
+            <span class="stock-item-label">Выставлено</span>
+            <span class="stock-item-price">{{ "%.0f"|format(item.expected_sell_price) }}$</span>
+        </div>
+        
+        <div class="profit-card">
+            <div class="stock-item-field">
+                <span class="stock-item-label">Ожидаемая прибыль</span>
+                <span class="stock-item-price">{{ "%.0f"|format(item.expected_profit) }}$</span>
+            </div>
+        </div>
+        
+        <div class="stock-item-actions">
+            <button class="action-btn action-btn-primary">Изменить</button>
+            <button class="action-btn action-btn-secondary">Продать позицию</button>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% if not stock_items %}
+    <div class="stock-item-card" style="text-align: center; padding: 40px 20px;">
+        <p style="color: #666; font-size: 16px;">Нет товаров в стоке для этого инвестора</p>
+    </div>
+    {% endif %}
+    
+    <!-- Кнопка добавить сток -->
+    <a href="{{ url_for('add_stock') }}" class="add-stock-btn">Добавить сток</a>
+</div>
+{% endblock %}

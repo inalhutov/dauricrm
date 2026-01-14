@@ -1,0 +1,738 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .add-sale-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
+    }
+    
+    /* Логотип - фиксированный */
+    .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 120px;
+        margin: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    
+    .page-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 30px;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        display: inline-block;
+        width: auto;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Секция фотографии */
+    .photo-section {
+        margin-bottom: 25px;
+    }
+    
+    .photo-label {
+        font-size: 26px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        text-align: center;
+    }
+    
+    .photo-upload-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        border: 2px dashed transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .photo-upload-card:hover {
+        border-color: #B58358;
+    }
+    
+    .photo-upload-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+    
+    .photo-upload-text {
+        font-size: 16px;
+        color: #333;
+    }
+    
+    .photo-preview {
+        display: none;
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 15px;
+        margin-top: 10px;
+    }
+    
+    .photo-preview.active {
+        display: block;
+    }
+    
+    /* Поля ввода */
+    .form-field {
+        margin-bottom: 20px;
+    }
+    
+    .field-label {
+        font-size: 16px;
+        color: #333;
+        display: block;
+        font-weight: 500;
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .field-input-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .field-input-wrapper {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .field-input-card input,
+    .field-input-card select {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        color: #333;
+        outline: none;
+        width: 100%;
+        padding: 0;
+    }
+    
+    .field-input-card input::placeholder {
+        color: #999;
+        opacity: 0.7;
+    }
+    
+    .field-input-card select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right center;
+        padding-right: 25px;
+    }
+    
+    /* Расходы */
+    .expense-section {
+        margin-bottom: 20px;
+    }
+    
+    .expense-list {
+        padding: 10px 20px;
+    }
+    
+    .expense-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .expense-item:last-child {
+        border-bottom: none;
+    }
+    
+    .expense-item-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+    
+    .expense-item-name {
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .expense-item-amount {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+        margin-right: 8px;
+    }
+    
+    .remove-expense-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    
+    .add-expense-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #B58358;
+        color: white;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 10px auto;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Модальное окно */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: #F7F3EC;
+        border-radius: 25px;
+        padding: 30px;
+        width: 90%;
+        max-width: 400px;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    
+    .modal-field {
+        margin-bottom: 20px;
+    }
+    
+    .modal-field-label {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        font-weight: 500;
+    }
+    
+    .modal-input-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 0;
+    }
+    
+    .modal-input-wrapper {
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .modal-input-wrapper:last-child {
+        border-bottom: none;
+    }
+    
+    .modal-input-card input,
+    .modal-input-card select,
+    .modal-input-card textarea {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        color: #333;
+        outline: none;
+        padding: 0;
+        resize: vertical;
+    }
+    
+    .modal-input-card input::placeholder,
+    .modal-input-card textarea::placeholder {
+        color: #999;
+        opacity: 0.7;
+    }
+    
+    .modal-input-card select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right center;
+        padding-right: 25px;
+    }
+    
+    .modal-submit-btn {
+        width: 100%;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    
+    /* Кнопка отправки */
+    .submit-btn {
+        width: 65%;
+        margin: 40px auto 0;
+        display: block;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .hidden-input {
+        display: none;
+    }
+    
+    /* Скрытые формы */
+    .additional-forms {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-toggle {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 12px 20px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 16px;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+    
+    .form-toggle:hover {
+        background: rgba(255, 255, 255, 0.7);
+    }
+    
+    .form-toggle::after {
+        content: '▼';
+        transition: transform 0.3s ease;
+    }
+    
+    .form-toggle.active::after {
+        transform: rotate(180deg);
+    }
+    
+    .collapsible-form {
+        display: none;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .collapsible-form.active {
+        display: block;
+    }
+    
+    .collapsible-form .field-input-card {
+        margin-bottom: 15px;
+    }
+    
+    .collapsible-form-btn {
+        width: 100%;
+        background: #B58358;
+        color: white;
+        padding: 12px;
+        border-radius: 15px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+    
+    @media (min-width: 768px) {
+        .add-sale-container {
+            max-width: 600px;
+            padding-top: 90px;
+        }
+    }
+</style>
+
+<!-- Логотип - фиксированный -->
+<div class="logo-icon">
+    <a href="{{ url_for('main') }}">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </a>
+</div>
+
+<div class="add-sale-container">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 class="page-title">Добавление стока</h1>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" id="addStockForm">
+        <!-- Фотография -->
+        <div class="photo-section">
+            <label class="photo-label">Фотография</label>
+            <div class="photo-upload-card" onclick="document.getElementById('photo-input').click()">
+                <div class="photo-upload-icon">📷</div>
+                <div class="photo-upload-text">Загрузить фото</div>
+                <img id="photo-preview" class="photo-preview" alt="Preview">
+            </div>
+            <input type="file" name="photo" id="photo-input" accept="image/*" class="hidden-input">
+        </div>
+        
+        <!-- Название -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Название</label>
+                <div class="field-input-wrapper">
+                    <input type="text" name="product_name" required placeholder="Введи название">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reference -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Reference</label>
+                <div class="field-input-wrapper">
+                    <input type="text" name="reference" placeholder="Введи ref.">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Инвестор -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Инвестор</label>
+                <div class="field-input-wrapper">
+                    <select name="investor_id" required>
+                        <option value="">Выбери инвестора</option>
+                        {% for investor in investors %}
+                            <option value="{{ investor.id }}">{{ investor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Город -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Город</label>
+                <div class="field-input-wrapper">
+                    <select name="city_id" required>
+                        <option value="">Выбери город</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Покупка -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Покупка</label>
+                <div class="field-input-wrapper">
+                    <input type="number" step="0.01" name="buy_price" required placeholder="Введи цену покупки">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Продажа -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Продажа</label>
+                <div class="field-input-wrapper">
+                    <input type="number" step="0.01" name="expected_sell_price" required placeholder="Введи цену продажи">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Расходы -->
+        <div class="expense-section">
+            <div class="form-field">
+                <div class="field-input-card">
+                    <div class="field-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Расход</span>
+                        <span style="font-size: 16px; color: #333; font-weight: 500;" id="total-expense">0$</span>
+                    </div>
+                    <div class="expense-list" id="expenses-list">
+                        <!-- Список расходов будет добавляться сюда -->
+                    </div>
+                    <div style="text-align: center;">
+                        <button type="button" class="add-expense-btn" onclick="openExpenseModal()">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Скрытые поля для отправки формы -->
+        <div id="expenses-hidden-inputs"></div>
+        
+        <!-- Модальное окно для добавления расхода -->
+        <div class="modal-overlay" id="expense-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">Добавить расход</h2>
+                <div class="modal-field">
+                    <label class="modal-field-label">Расход</label>
+                    <div class="modal-input-card">
+                        <div class="modal-input-wrapper">
+                            <input type="number" step="0.01" id="expense-amount-input" placeholder="0$">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label class="modal-field-label">Комментарий</label>
+                    <div class="modal-input-card">
+                        <div class="modal-input-wrapper">
+                            <textarea id="expense-comment-input" placeholder="Введи комментарий" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="modal-submit-btn" onclick="saveExpense()">Добавить</button>
+            </div>
+        </div>
+        
+        <!-- Кнопка отправки -->
+        <button type="submit" class="submit-btn">Добавить сток</button>
+    </form>
+    
+    <!-- Дополнительные формы (скрыты по умолчанию) -->
+    <div class="additional-forms">
+        <div class="form-toggle" onclick="toggleForm('city-form')">
+            Добавить новый город
+        </div>
+        <div id="city-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_city') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Название города">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить город</button>
+            </form>
+        </div>
+        
+        <div class="form-toggle" onclick="toggleForm('investor-form')">
+            Добавить нового инвестора
+        </div>
+        <div id="investor-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_investor') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Имя инвестора">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить инвестора</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Превью фотографии
+    document.getElementById('photo-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photo-preview');
+                preview.src = e.target.result;
+                preview.classList.add('active');
+                document.querySelector('.photo-upload-text').style.display = 'none';
+                document.querySelector('.photo-upload-icon').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Массив для хранения расходов
+    let expenses = [];
+    
+    // Открытие модального окна
+    function openExpenseModal() {
+        document.getElementById('expense-modal').classList.add('active');
+        document.getElementById('expense-amount-input').value = '';
+        document.getElementById('expense-comment-input').value = '';
+    }
+    
+    // Закрытие модального окна
+    function closeExpenseModal() {
+        document.getElementById('expense-modal').classList.remove('active');
+    }
+    
+    // Сохранение расхода
+    function saveExpense() {
+        const amount = parseFloat(document.getElementById('expense-amount-input').value);
+        const comment = document.getElementById('expense-comment-input').value.trim();
+        
+        if (!amount || amount <= 0) {
+            alert('Введите сумму расхода');
+            return;
+        }
+        
+        // Добавляем расход в массив
+        expenses.push({
+            amount: amount,
+            comment: comment
+        });
+        
+        // Обновляем отображение
+        renderExpenses();
+        updateTotalExpense();
+        closeExpenseModal();
+    }
+    
+    // Удаление расхода
+    function removeExpense(index) {
+        expenses.splice(index, 1);
+        renderExpenses();
+        updateTotalExpense();
+    }
+    
+    // Отображение списка расходов
+    function renderExpenses() {
+        const container = document.getElementById('expenses-list');
+        const hiddenInputs = document.getElementById('expenses-hidden-inputs');
+        
+        container.innerHTML = '';
+        hiddenInputs.innerHTML = '';
+        
+        expenses.forEach((expense, index) => {
+            // Создаем элемент списка
+            const item = document.createElement('div');
+            item.className = 'expense-item';
+            item.innerHTML = `
+                <div class="expense-item-info">
+                    <span class="expense-item-amount">${expense.amount.toFixed(2)}$</span>
+                    ${expense.comment ? `<span class="expense-item-name">${expense.comment}</span>` : ''}
+                </div>
+                <button type="button" class="remove-expense-btn" onclick="removeExpense(${index})">−</button>
+            `;
+            container.appendChild(item);
+            
+            // Создаем скрытые поля для формы (если понадобятся в будущем)
+            const amountInput = document.createElement('input');
+            amountInput.type = 'hidden';
+            amountInput.name = 'expense_amount';
+            amountInput.value = expense.amount;
+            
+            const commentInput = document.createElement('input');
+            commentInput.type = 'hidden';
+            commentInput.name = 'expense_comment';
+            commentInput.value = expense.comment || '';
+            
+            hiddenInputs.appendChild(amountInput);
+            hiddenInputs.appendChild(commentInput);
+        });
+    }
+    
+    // Переключение дополнительных форм
+    function toggleForm(formId) {
+        const form = document.getElementById(formId);
+        const toggle = form.previousElementSibling;
+        
+        form.classList.toggle('active');
+        toggle.classList.toggle('active');
+    }
+    
+    // Обновление общей суммы расходов
+    function updateTotalExpense() {
+        let total = 0;
+        expenses.forEach(expense => {
+            total += expense.amount;
+        });
+        document.getElementById('total-expense').textContent = total.toFixed(2) + '$';
+    }
+    
+    // Закрытие модального окна при клике вне его
+    document.getElementById('expense-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeExpenseModal();
+        }
+    });
+    
+    // Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTotalExpense();
+    });
+</script>
+{% endblock %}

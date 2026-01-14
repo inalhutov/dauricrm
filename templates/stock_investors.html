@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .stock-investors-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-top: 150px;  /* Отступ для фиксированного логотипа */
+    }
+    
+    /* Иконка сверху - фиксированная */
+    .logo-icon {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 120px;
+        margin: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    
+    .logo-icon a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+    }
+    
+    .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    
+    /* Фильтр инвесторов */
+    .investor-filter-bar {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 12px 24px;
+        border-radius: 43px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Карточка инвестора */
+    .investor-stock-card {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    
+    .investor-stock-card:hover {
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .investor-stock-card a {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    /* Верхняя часть карточки с именем и городами */
+    .investor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+    
+    /* Метка инвестора */
+    .investor-label {
+        display: inline-block;
+        background: #514D4A;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    /* Города справа */
+    .investor-cities {
+        text-align: right;
+    }
+    
+    .cities-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+    
+    .cities-value {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    /* Позиций в стоке */
+    .stock-positions {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .stock-positions-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .stock-positions-number {
+        font-size: 48px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    /* Финансовые данные в две колонки */
+    .financial-data {
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .financial-column {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .financial-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .financial-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    @media (min-width: 768px) {
+        .stock-investors-container {
+            max-width: 600px;
+            padding-top: 90px;
+        }
+        
+        .stock-positions-number {
+            font-size: 56px;
+        }
+        
+        .financial-value {
+            font-size: 28px;
+        }
+    }
+</style>
+
+<!-- Иконка - фиксированная -->
+<div class="logo-icon">
+    <a href="{{ url_for('main') }}">
+        <img src="{{ url_for('uploaded_file', filename='logo.png') }}" alt="Logo">
+    </a>
+</div>
+
+<div class="stock-investors-container">
+    <!-- Фильтр инвесторов -->
+    <div class="investor-filter-bar">
+        Все инвесторы
+    </div>
+    
+    <!-- Карточки инвесторов -->
+    {% for investor_name, data in investors_data.items() %}
+    <div class="investor-stock-card">
+        <a href="{{ url_for('stock_investor_detail', investor_name=investor_name) }}">
+            <div class="investor-header">
+                <div class="investor-label">{{ investor_name }}</div>
+                <div class="investor-cities">
+                    <div class="cities-label">Города</div>
+                    <div class="cities-value">{{ data.cities }}</div>
+                </div>
+            </div>
+            
+            <div class="stock-positions">
+                <div class="stock-positions-label">Позиций в стоке</div>
+                <div class="stock-positions-number">{{ data.positions }}</div>
+            </div>
+            
+            <div class="financial-data">
+                <div class="financial-column">
+                    <div class="financial-label">Вложено $</div>
+                    <div class="financial-value">{{ "%.0f"|format(data.invested) }}$</div>
+                </div>
+                <div class="financial-column">
+                    <div class="financial-label">Ожидаемая прибыль</div>
+                    <div class="financial-value">{{ "%.0f"|format(data.expected_profit) }}$</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+    
+    {% if not investors_data %}
+    <div class="investor-stock-card" style="text-align: center; padding: 40px 20px;">
+        <p style="color: #666; font-size: 16px;">Нет данных о стоке по инвесторам</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
