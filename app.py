@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -81,6 +82,17 @@ class GeneralExpense(db.Model):
     city = db.relationship('City', backref='general_expenses')
 
 
+class StockExpense(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    stock_item_id = db.Column(db.Integer, db.ForeignKey('stock_item.id'), nullable=False)
+    expense_type_id = db.Column(db.Integer, db.ForeignKey('expense_type.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.String(200))
+
+    expense_type = db.relationship('ExpenseType', backref='stock_expenses')
+    stock_item = db.relationship('StockItem', backref='expenses')
+
+
 class Investor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
@@ -92,7 +104,7 @@ class Investor(db.Model):
 class StockItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
-    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=False)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=True)
     product_name = db.Column(db.String(200), nullable=False)
     reference = db.Column(db.String(200))
     buy_price = db.Column(db.Float, nullable=False)
@@ -100,6 +112,7 @@ class StockItem(db.Model):
     quantity = db.Column(db.Integer, default=1)
     photo = db.Column(db.String(200))
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    sold = db.Column(db.Boolean, default=False, nullable=False)
 
     city = db.relationship('City', backref='stock_items')
     investor = db.relationship('Investor', backref='stock_items')
@@ -132,8 +145,8 @@ def main():
 # СТРАНИЦА СТОКА
 @app.route('/stock')
 def stock():
-    # Подсчитываем данные из таблицы StockItem
-    all_stock_items = StockItem.query.all()
+    # Подсчитываем данные из таблицы StockItem (только непроданные)
+    all_stock_items = StockItem.query.filter_by(sold=False).all()
     total_invested = sum(item.total_invested for item in all_stock_items)
     stock_positions = sum(item.quantity for item in all_stock_items)
     expected_profit = sum(item.expected_profit for item in all_stock_items)
@@ -152,7 +165,11 @@ def stock_cities():
     cities_data = {}
     
     for city in cities:
-        stock_items = StockItem.query.filter_by(city_id=city.id).all()
+        # Фильтруем только непроданные позиции (sold=False или sold IS NULL для старых записей)
+        stock_items = StockItem.query.filter(
+            StockItem.city_id == city.id,
+            or_(StockItem.sold == False, StockItem.sold.is_(None))
+        ).all()
         if stock_items:  # Показываем только города с стоком
             total_invested = sum(item.total_invested for item in stock_items)
             stock_positions = sum(item.quantity for item in stock_items)
@@ -176,8 +193,8 @@ def stock_city_detail(city_name):
     # Находим город
     city = City.query.filter_by(name=city_name).first_or_404()
     
-    # Получаем все товары в стоке для этого города
-    stock_items = StockItem.query.filter_by(city_id=city.id).all()
+    # Получаем все товары в стоке для этого города (только непроданные)
+    stock_items = StockItem.query.filter_by(city_id=city.id, sold=False).all()
     
     # Подсчитываем общую статистику
     total_invested = sum(item.total_invested for item in stock_items)
@@ -200,7 +217,7 @@ def stock_investors():
     investors_data = {}
     
     for investor in investors:
-        stock_items = StockItem.query.filter_by(investor_id=investor.id).all()
+        stock_items = StockItem.query.filter_by(investor_id=investor.id, sold=False).all()
         if stock_items:  # Показываем только инвесторов с стоком
             total_invested = sum(item.total_invested for item in stock_items)
             stock_positions = sum(item.quantity for item in stock_items)
@@ -229,8 +246,8 @@ def stock_investor_detail(investor_name):
     # Находим инвестора
     investor = Investor.query.filter_by(name=investor_name).first_or_404()
     
-    # Получаем все товары в стоке для этого инвестора
-    stock_items = StockItem.query.filter_by(investor_id=investor.id).all()
+    # Получаем все товары в стоке для этого инвестора (только непроданные)
+    stock_items = StockItem.query.filter_by(investor_id=investor.id, sold=False).all()
     
     # Подсчитываем общую статистику
     total_invested = sum(item.total_invested for item in stock_items)
@@ -521,22 +538,77 @@ def add_stock():
             investor_id=investor_id
         )
         db.session.add(new_stock)
-        db.session.commit()
+        db.session.flush()  # Получаем ID нового стока
 
-        # Добавление расходов (если будут нужны в будущем)
-        # expense_type_ids = request.form.getlist('expense_type_id')
-        # amounts = request.form.getlist('expense_amount')
-        # comments = request.form.getlist('expense_comment')
-        # for et_id, amt, comment in zip(expense_type_ids, amounts, comments):
-        #     if et_id and amt:
-        #         # Можно создать отдельную таблицу StockExpense если нужно
-        #         pass
+        # Добавление расходов
+        expense_type_ids = request.form.getlist('expense_type_id')
+        amounts = request.form.getlist('expense_amount')
+        for et_id, amt in zip(expense_type_ids, amounts):
+            if et_id and amt:
+                stock_expense = StockExpense(
+                    stock_item_id=new_stock.id,
+                    expense_type_id=int(et_id),
+                    amount=float(amt)
+                )
+                db.session.add(stock_expense)
 
         db.session.commit()
         flash('Сток добавлен!', 'success')
         return redirect(url_for('stock'))
 
     return render_template('add_stock.html', cities=cities, expense_types=expense_types, investors=investors)
+
+
+@app.route('/edit_stock/<int:stock_id>', methods=['GET', 'POST'])
+def edit_stock(stock_id):
+    stock_item = StockItem.query.get_or_404(stock_id)
+    cities = City.query.all()
+    investors = Investor.query.all()
+    expense_types = ExpenseType.query.all()
+
+    if request.method == 'POST':
+        stock_item.product_name = request.form['product_name']
+        stock_item.reference = request.form.get('reference', '')
+        stock_item.buy_price = float(request.form['buy_price'])
+        stock_item.expected_sell_price = float(request.form['expected_sell_price'])
+        stock_item.quantity = int(request.form.get('quantity', 1))
+        stock_item.city_id = int(request.form['city_id'])
+        stock_item.investor_id = int(request.form['investor_id'])
+
+        photo = request.files['photo']
+        if photo and allowed_file(photo.filename):
+            filename = secure_filename(photo.filename)
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            stock_item.photo = filename
+
+        # Обновление расходов
+        for exp in stock_item.expenses:
+            db.session.delete(exp)
+        expense_type_ids = request.form.getlist('expense_type_id')
+        amounts = request.form.getlist('expense_amount')
+        for et_id, amt in zip(expense_type_ids, amounts):
+            if et_id and amt:
+                stock_expense = StockExpense(
+                    stock_item_id=stock_item.id,
+                    expense_type_id=int(et_id),
+                    amount=float(amt)
+                )
+                db.session.add(stock_expense)
+
+        db.session.commit()
+        flash('Сток обновлен!', 'success')
+        return redirect(request.referrer or url_for('stock'))
+
+    return render_template('edit_stock.html', stock_item=stock_item, cities=cities, investors=investors, expense_types=expense_types)
+
+
+@app.route('/sell_stock/<int:stock_id>', methods=['POST'])
+def sell_stock(stock_id):
+    stock_item = StockItem.query.get_or_404(stock_id)
+    stock_item.sold = True
+    db.session.commit()
+    flash('Позиция помечена как проданная!', 'success')
+    return redirect(request.referrer or url_for('stock'))
 
 
 @app.route('/edit_sale/<int:sale_id>', methods=['GET', 'POST'])

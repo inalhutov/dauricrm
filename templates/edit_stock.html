@@ -73,11 +73,16 @@
     .photo-upload-card {
         background: rgba(255, 255, 255, 0.5);
         border-radius: 20px;
-        padding: 40px 20px;
+        padding: 0;
         text-align: center;
         cursor: pointer;
         border: 2px dashed transparent;
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
     }
     
     .photo-upload-card:hover {
@@ -95,15 +100,33 @@
     }
     
     .photo-preview {
-        display: none;
         max-width: 100%;
-        max-height: 200px;
-        border-radius: 15px;
-        margin-top: 10px;
+        width: 100%;
+        object-fit: contain;
+        display: block;
+        flex: 1;
     }
     
     .photo-preview.active {
         display: block;
+        border-radius: 20px 20px 0 0;
+        min-height: 300px;
+    }
+    
+    .replace-photo-btn {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #B58358;
+        color: white;
+        padding: 12px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        border-radius: 0 0 20px 20px;
     }
     
     /* Поля ввода */
@@ -162,32 +185,52 @@
         padding-right: 25px;
     }
     
+    /* Кнопка отправки */
+    .submit-btn {
+        width: 65%;
+        margin: 40px auto 0;
+        display: block;
+        background: #B58358;
+        color: white;
+        padding: 15px;
+        border-radius: 20px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .hidden-input {
+        display: none;
+    }
+    
     /* Расходы */
     .expense-section {
         margin-bottom: 20px;
     }
     
     .expense-list {
-        padding: 10px 20px;
+        margin-top: 8px;
     }
     
     .expense-item {
+        background: rgba(9, 9, 9, 0.15);
+        border-radius: 12px;
+        padding: 8px 12px;
+        margin-bottom: 6px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    
-    .expense-item:last-child {
-        border-bottom: none;
+        justify-content: space-between;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .expense-item-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
         flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
     
     .expense-item-name {
@@ -298,8 +341,7 @@
     }
     
     .modal-input-card input,
-    .modal-input-card select,
-    .modal-input-card textarea {
+    .modal-input-card select {
         width: 100%;
         border: none;
         background: transparent;
@@ -307,11 +349,9 @@
         color: #333;
         outline: none;
         padding: 0;
-        resize: vertical;
     }
     
-    .modal-input-card input::placeholder,
-    .modal-input-card textarea::placeholder {
+    .modal-input-card input::placeholder {
         color: #999;
         opacity: 0.7;
     }
@@ -337,27 +377,6 @@
         border: none;
         cursor: pointer;
         margin-top: 20px;
-    }
-    
-    /* Кнопка отправки */
-    .submit-btn {
-        width: 65%;
-        margin: 40px auto 0;
-        display: block;
-        background: #B58358;
-        color: white;
-        padding: 15px;
-        border-radius: 20px;
-        text-align: center;
-        text-decoration: none;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        cursor: pointer;
-    }
-    
-    .hidden-input {
-        display: none;
     }
     
     /* Скрытые формы */
@@ -441,17 +460,24 @@
 
 <div class="add-sale-container">
     <div style="text-align: center; margin-bottom: 30px;">
-        <h1 class="page-title">Добавление стока</h1>
+        <h1 class="page-title">Изменение стока</h1>
     </div>
     
-    <form method="POST" enctype="multipart/form-data" id="addStockForm">
+    <form method="POST" enctype="multipart/form-data" id="editStockForm">
         <!-- Фотография -->
         <div class="photo-section">
             <label class="photo-label">Фотография</label>
-            <div class="photo-upload-card" onclick="document.getElementById('photo-input').click()">
-                <div class="photo-upload-icon">📷</div>
-                <div class="photo-upload-text">Загрузить фото</div>
-                <img id="photo-preview" class="photo-preview" alt="Preview">
+            <div class="photo-upload-card">
+                {% if stock_item.photo %}
+                    <img src="{{ url_for('uploaded_file', filename=stock_item.photo) }}" id="photo-preview" class="photo-preview active" alt="Preview">
+                    <button type="button" class="replace-photo-btn" onclick="document.getElementById('photo-input').click()">Заменить фото</button>
+                {% else %}
+                    <div onclick="document.getElementById('photo-input').click()">
+                        <div class="photo-upload-icon">📷</div>
+                        <div class="photo-upload-text">Загрузить фото</div>
+                        <img id="photo-preview" class="photo-preview" alt="Preview">
+                    </div>
+                {% endif %}
             </div>
             <input type="file" name="photo" id="photo-input" accept="image/*" class="hidden-input">
         </div>
@@ -461,7 +487,7 @@
             <div class="field-input-card">
                 <label class="field-label">Название</label>
                 <div class="field-input-wrapper">
-                    <input type="text" name="product_name" required placeholder="Введи название">
+                    <input type="text" name="product_name" value="{{ stock_item.product_name }}" required placeholder="Введи название">
                 </div>
             </div>
         </div>
@@ -471,7 +497,7 @@
             <div class="field-input-card">
                 <label class="field-label">Reference</label>
                 <div class="field-input-wrapper">
-                    <input type="text" name="reference" placeholder="Введи ref.">
+                    <input type="text" name="reference" value="{{ stock_item.reference or '' }}" placeholder="Введи ref.">
                 </div>
             </div>
         </div>
@@ -484,7 +510,7 @@
                     <select name="investor_id" required>
                         <option value="">Выбери инвестора</option>
                         {% for investor in investors %}
-                            <option value="{{ investor.id }}">{{ investor.name }}</option>
+                            <option value="{{ investor.id }}" {% if stock_item.investor_id == investor.id %}selected{% endif %}>{{ investor.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -499,7 +525,7 @@
                     <select name="city_id" required>
                         <option value="">Выбери город</option>
                         {% for city in cities %}
-                            <option value="{{ city.id }}">{{ city.name }}</option>
+                            <option value="{{ city.id }}" {% if stock_item.city_id == city.id %}selected{% endif %}>{{ city.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -511,7 +537,7 @@
             <div class="field-input-card">
                 <label class="field-label">Покупка</label>
                 <div class="field-input-wrapper">
-                    <input type="number" step="0.01" name="buy_price" required placeholder="Введи цену покупки">
+                    <input type="number" step="0.01" name="buy_price" value="{{ stock_item.buy_price }}" required placeholder="Введи цену покупки">
                 </div>
             </div>
         </div>
@@ -521,7 +547,17 @@
             <div class="field-input-card">
                 <label class="field-label">Продажа</label>
                 <div class="field-input-wrapper">
-                    <input type="number" step="0.01" name="expected_sell_price" required placeholder="Введи цену продажи">
+                    <input type="number" step="0.01" name="expected_sell_price" value="{{ stock_item.expected_sell_price }}" required placeholder="Введи цену продажи">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Количество -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Количество</label>
+                <div class="field-input-wrapper">
+                    <input type="number" name="quantity" value="{{ stock_item.quantity or 1 }}" min="1" required placeholder="Введи количество">
                 </div>
             </div>
         </div>
@@ -577,7 +613,7 @@
         </div>
         
         <!-- Кнопка отправки -->
-        <button type="submit" class="submit-btn">Добавить сток</button>
+        <button type="submit" class="submit-btn">Сохранить изменения</button>
     </form>
     
     <!-- Дополнительные формы (скрыты по умолчанию) -->
@@ -622,15 +658,38 @@
                 const preview = document.getElementById('photo-preview');
                 preview.src = e.target.result;
                 preview.classList.add('active');
-                document.querySelector('.photo-upload-text').style.display = 'none';
-                document.querySelector('.photo-upload-icon').style.display = 'none';
+                
+                // Скрываем иконку и текст загрузки, если они есть
+                const uploadText = document.querySelector('.photo-upload-text');
+                const uploadIcon = document.querySelector('.photo-upload-icon');
+                if (uploadText) uploadText.style.display = 'none';
+                if (uploadIcon) uploadIcon.style.display = 'none';
+                
+                // Показываем кнопку "Заменить фото", если её нет
+                let replaceBtn = document.querySelector('.replace-photo-btn');
+                if (!replaceBtn) {
+                    replaceBtn = document.createElement('button');
+                    replaceBtn.type = 'button';
+                    replaceBtn.className = 'replace-photo-btn';
+                    replaceBtn.textContent = 'Заменить фото';
+                    replaceBtn.onclick = function() { document.getElementById('photo-input').click(); };
+                    document.querySelector('.photo-upload-card').appendChild(replaceBtn);
+                }
             };
             reader.readAsDataURL(file);
         }
     });
     
-    // Массив для хранения расходов
-    let expenses = [];
+    // Массив для хранения расходов (загружаем существующие)
+    let expenses = [
+        {% for expense in stock_item.expenses %}
+        {
+            typeId: '{{ expense.expense_type_id }}',
+            name: '{{ expense.expense_type.name }}',
+            amount: {{ expense.amount }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
     
     // Открытие модального окна
     function openExpenseModal() {
@@ -714,15 +773,6 @@
         });
     }
     
-    // Переключение дополнительных форм
-    function toggleForm(formId) {
-        const form = document.getElementById(formId);
-        const toggle = form.previousElementSibling;
-        
-        form.classList.toggle('active');
-        toggle.classList.toggle('active');
-    }
-    
     // Обновление общей суммы расходов
     function updateTotalExpense() {
         let total = 0;
@@ -739,8 +789,18 @@
         }
     });
     
+    // Переключение дополнительных форм
+    function toggleForm(formId) {
+        const form = document.getElementById(formId);
+        const toggle = form.previousElementSibling;
+        
+        form.classList.toggle('active');
+        toggle.classList.toggle('active');
+    }
+    
     // Инициализация при загрузке
     document.addEventListener('DOMContentLoaded', function() {
+        renderExpenses();
         updateTotalExpense();
     });
 </script>
