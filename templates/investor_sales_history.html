@@ -41,8 +41,8 @@
         cursor: pointer;
     }
     
-    /* Карточка периода */
-    .period-card {
+    /* Заголовок истории */
+    .history-title-card {
         background: rgba(255, 255, 255, 0.5);
         padding: 12px 24px;
         border-radius: 43px;
@@ -50,11 +50,8 @@
         font-size: 16px;
         font-weight: 500;
         color: #333;
-        margin-bottom: 30px;
-        display: block;
-        width: 65%;
-        margin-left: auto;
-        margin-right: auto;
+        margin-bottom: 20px;
+        width: 100%;
         box-sizing: border-box;
     }
     
@@ -95,6 +92,30 @@
         background: white;
         flex: 1;
         min-width: 0;
+    }
+    
+    /* Большая карточка с суммой реализованных позиций */
+    .total-realized-card {
+        background: #514D4A;
+        color: white;
+        padding: 30px 25px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .total-realized-card .amount {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 0;
+        color: white;
+    }
+    
+    .total-realized-card .label {
+        font-size: 14px;
+        margin: 10px 0 0;
+        opacity: 0.9;
+        color: white;
     }
     
     /* Две карточки метрик */
@@ -148,35 +169,36 @@
         font-size: 14px;
         color: #333;
         margin: 0 0 5px 0;
+        font-weight: 500;
     }
     
     .expenses-card .expenses-info h2 {
-        font-size: 36px;
+        font-size: 32px;
         font-weight: bold;
         margin: 0;
         color: #333;
     }
     
-    .expenses-card .view-expenses-btn {
+    .view-expenses-btn {
         background: #B58358;
         color: white;
-        padding: 12px 20px;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
+        padding: 10px 20px;
+        border-radius: 15px;
         text-decoration: none;
-        display: inline-block;
-        align-self: center;
+        font-size: 14px;
+        font-weight: 500;
         white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    
+    .view-expenses-btn:hover {
+        background: #9d7149;
     }
     
     /* Карточка прибыли */
     .profit-card {
         background: rgba(255, 255, 255, 0.5);
-        color: #333;
-        padding: 15px 25px;
+        padding: 30px 25px;
         border-radius: 20px;
         text-align: center;
         margin-bottom: 30px;
@@ -191,21 +213,20 @@
     
     .profit-card p {
         font-size: 14px;
-        margin: 10px 0 0;
-        opacity: 0.9;
         color: #333;
+        margin: 10px 0 0;
     }
     
     /* Заголовок списка */
     .sales-header {
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 18px;
+        font-weight: 500;
         color: #333;
-        margin: 40px 0 20px 0;
         text-align: center;
+        margin-bottom: 20px;
     }
     
-    /* Карточки продаж */
+    /* Список продаж */
     .sales-list {
         list-style: none;
         padding: 0;
@@ -343,6 +364,10 @@
             width: 100%;
         }
         
+        .total-realized-card .amount {
+            font-size: 52px;
+        }
+        
         .metric-card h2 {
             font-size: 48px;
         }
@@ -371,6 +396,11 @@
         </a>
     </div>
     
+    <!-- Заголовок истории -->
+    <div class="history-title-card">
+        История продаж {{ investor.name }}
+    </div>
+    
     <!-- Фильтры -->
     <div class="city-filter">
         <form method="GET">
@@ -395,21 +425,20 @@
             </div>
             
             <div class="filter-row">
-                <label><strong>Город:</strong></label>
-                <select name="city" onchange="this.form.submit()">
-                    <option value="all" {% if city_filter == 'all' %}selected{% endif %}>Все города</option>
-                    {% for city in all_cities %}
-                        <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
-                    {% endfor %}
+                <label><strong>Период:</strong></label>
+                <select name="period" onchange="this.form.submit()">
+                    <option value="all" {% if period_filter == 'all' %}selected{% endif %}>Все продажи</option>
+                    <option value="current_month" {% if period_filter == 'current_month' %}selected{% endif %}>Текущий месяц</option>
                 </select>
             </div>
             <input type="hidden" name="sort" value="{{ sort }}">
         </form>
     </div>
 
-    <!-- Карточка периода -->
-    <div class="period-card">
-        {{ period_label }}{% if city_filter != 'all' %} ({{ city_filter }}){% endif %}
+    <!-- Большая карточка с суммой реализованных позиций -->
+    <div class="total-realized-card">
+        <div class="amount">{{ "%.0f"|format(total_realized) }}$</div>
+        <div class="label">Сумма реализованных позиций</div>
     </div>
 
     <!-- Две карточки метрик -->
@@ -435,12 +464,12 @@
 
     <!-- Карточка прибыли -->
     <div class="profit-card">
-        <h2>{{ "%.0f"|format(net_profit_month) }}$</h2>
+        <h2>{{ "%.0f"|format(net_profit) }}$</h2>
         <p>Прибыль с вычетом расходов</p>
     </div>
 
     <!-- Заголовок списка -->
-    <h2 class="sales-header">Реализованные позиции</h2>
+    <h2 class="sales-header">История продаж</h2>
 
     <!-- Список продаж -->
     <ul class="sales-list">
@@ -450,7 +479,7 @@
                 {% if s.photo %}
                     <img src="{{ url_for('uploaded_file', filename=s.photo) }}" alt="фото" class="sale-card-image">
                 {% else %}
-                    <div class="sale-card-image" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 15px;">
+                    <div class="sale-card-image" style="background: #f8f8f8; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 15px;">
                     Нет фото
                     </div>
                 {% endif %}
@@ -536,11 +565,7 @@
         </li>
         {% else %}
         <li class="empty-state">
-            {% if city_filter != 'all' %}
-                В городе <strong>{{ city_filter }}</strong> пока нет продаж.
-            {% else %}
-                Пока нет продаж вообще.
-            {% endif %}
+            Пока нет продаж для этого инвестора.
             <br><br>
             <a href="{{ url_for('add_sale') }}" style="color: #B58358; font-weight: bold;">Добавьте первую!</a>
         </li>

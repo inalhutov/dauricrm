@@ -503,6 +503,21 @@
             </div>
         </div>
         
+        <!-- Инвестор -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Инвестор</label>
+                <div class="field-input-wrapper">
+                    <select name="investor_id">
+                        <option value="">Выбери инвестора</option>
+                        {% for investor in investors %}
+                            <option value="{{ investor.id }}" {% if sale.investor_id and investor.id == sale.investor_id %}selected{% endif %}>{{ investor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
         <!-- Город -->
         <div class="form-field">
             <div class="field-input-card">
@@ -658,6 +673,20 @@
                     </div>
                 </div>
                 <button type="submit" class="collapsible-form-btn">Добавить сотрудника</button>
+            </form>
+        </div>
+        
+        <div class="form-toggle" onclick="toggleForm('investor-form')">
+            Добавить нового инвестора
+        </div>
+        <div id="investor-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_investor') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Имя инвестора">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить инвестора</button>
             </form>
         </div>
     </div>

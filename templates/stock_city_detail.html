@@ -358,9 +358,7 @@
         
         <div class="stock-item-actions">
             <a href="{{ url_for('edit_stock', stock_id=item.id) }}" class="action-btn action-btn-primary">Изменить</a>
-            <form method="POST" action="{{ url_for('sell_stock', stock_id=item.id) }}" style="flex: 1; margin: 0;">
-                <button type="submit" class="action-btn action-btn-secondary" onclick="return confirm('Вы уверены, что хотите пометить эту позицию как проданную?')">Продать позицию</button>
-            </form>
+            <a href="{{ url_for('add_sale', stock_id=item.id) }}" class="action-btn action-btn-secondary">Продать позицию</a>
         </div>
     </div>
     {% endfor %}

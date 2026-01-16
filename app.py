@@ -48,10 +48,12 @@ class Sale(db.Model):
     sell_price = db.Column(db.Float, nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    investor_id = db.Column(db.Integer, db.ForeignKey('investor.id'), nullable=True)
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
     city = db.relationship('City', backref='sales')
     employee = db.relationship('Employee', backref='sales')
+    investor = db.relationship('Investor', backref='sales')
     expenses = db.relationship('Expense', backref='sale', lazy=True, cascade="all, delete-orphan")
 
     @property
@@ -262,6 +264,100 @@ def stock_investor_detail(investor_name):
                            expected_profit=expected_profit)
 
 
+# СТРАНИЦА ИСТОРИИ ПРОДАЖ ПО ИНВЕСТОРУ
+@app.route('/investor_sales_history/<investor_name>')
+def investor_sales_history(investor_name):
+    # Находим инвестора
+    investor = Investor.query.filter_by(name=investor_name).first_or_404()
+    
+    # Параметры из запроса
+    sort = request.args.get('sort', 'date_desc')
+    year_filter = request.args.get('year', 'all')
+    month_filter = request.args.get('month', 'all')
+    period_filter = request.args.get('period', 'all')
+    
+    # Базовый запрос - фильтруем по инвестору
+    sales_query = Sale.query.filter(Sale.investor_id == investor.id)
+    
+    # Определяем период для фильтрации
+    if period_filter == 'current_month':
+        today = date.today()
+        start_date = today.replace(day=1)
+        end_date = start_date + relativedelta(months=1)
+        sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+    elif year_filter != 'all':
+        try:
+            year_int = int(year_filter)
+            if month_filter != 'all':
+                try:
+                    month_int = int(month_filter)
+                    start_date = date(year_int, month_int, 1)
+                    end_date = start_date + relativedelta(months=1)
+                    sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+                except:
+                    start_date = date(year_int, 1, 1)
+                    end_date = date(year_int + 1, 1, 1)
+                    sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+            else:
+                start_date = date(year_int, 1, 1)
+                end_date = date(year_int + 1, 1, 1)
+                sales_query = sales_query.filter(Sale.date >= start_date, Sale.date < end_date)
+        except:
+            pass
+    
+    # Сортировка
+    if sort == 'date_asc':
+        sales_query = sales_query.order_by(Sale.date.asc())
+    elif sort == 'date_desc':
+        sales_query = sales_query.order_by(Sale.date.desc())
+    elif sort == 'sell_desc':
+        sales_query = sales_query.order_by(Sale.sell_price.desc())
+    elif sort == 'sell_asc':
+        sales_query = sales_query.order_by(Sale.sell_price.asc())
+    else:
+        sales_query = sales_query.order_by(Sale.date.desc())
+    
+    sales = sales_query.all()
+    
+    # Сортировка по прибыли в Python
+    if sort == 'profit_desc':
+        sales.sort(key=lambda s: s.profit, reverse=True)
+    elif sort == 'profit_asc':
+        sales.sort(key=lambda s: s.profit)
+    
+    # Статистика
+    total_realized = sum(s.sell_price for s in sales)  # Сумма реализованных позиций
+    count_sales = len(sales)  # Количество реализованных позиций
+    gross_income = sum(s.sell_price for s in sales)  # Доход
+    total_expenses = sum(sum(e.amount for e in s.expenses) for s in sales)  # Расходы
+    total_buy = sum(s.buy_price for s in sales)  # Сумма покупок
+    net_profit = gross_income - total_buy - total_expenses  # Прибыль с вычетом расходов
+    
+    # Список всех годов для фильтра
+    all_years = sorted(set(s.date.year for s in Sale.query.filter(Sale.investor_id == investor.id).with_entities(Sale.date).all()), reverse=True)
+    if not all_years:
+        all_years = [date.today().year]
+    
+    # Месяцы для фильтра
+    months_ru = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+    
+    return render_template('investor_sales_history.html',
+                           investor=investor,
+                           sales=sales,
+                           total_realized=round(total_realized, 2),
+                           count_sales=count_sales,
+                           gross_income=round(gross_income, 2),
+                           total_expenses=round(total_expenses, 2),
+                           net_profit=round(net_profit, 2),
+                           sort=sort,
+                           year_filter=year_filter if year_filter != 'all' else 'all',
+                           month_filter=month_filter if month_filter != 'all' else 'all',
+                           period_filter=period_filter,
+                           all_years=all_years,
+                           months_ru=months_ru)
+
+
 # СТРАНИЦА DASHBOARD (старая главная)
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
@@ -467,6 +563,16 @@ def add_sale():
     cities = City.query.all()
     expense_types = ExpenseType.query.all()
     employees = Employee.query.all()
+    investors = Investor.query.all()
+    
+    # Получаем stock_id из параметров запроса (если переходим из стока)
+    stock_id = request.args.get('stock_id', type=int)
+    stock_item = None
+    if stock_id:
+        stock_item = StockItem.query.get(stock_id)
+        if not stock_item:
+            flash('Сток не найден!', 'error')
+            return redirect(url_for('stock'))
 
     if request.method == 'POST':
         product_name = request.form['product_name']
@@ -475,8 +581,12 @@ def add_sale():
         sell_price = float(request.form['sell_price'])
         city_id = int(request.form['city_id'])
         employee_id = int(request.form['employee_id'])
+        investor_id = int(request.form.get('investor_id')) if request.form.get('investor_id') else None
         date_str = request.form['date']
         date = datetime.strptime(date_str, '%Y-%m-%d') if date_str else datetime.utcnow()
+        
+        # Получаем stock_id из скрытого поля формы (если продажа из стока)
+        stock_id_from_form = request.form.get('stock_id', type=int)
 
         photo_path = None
         photo = request.files['photo']
@@ -484,14 +594,33 @@ def add_sale():
             filename = secure_filename(photo.filename)
             photo_path = filename
             photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        elif stock_id_from_form:
+            # Если фото не загружено, но есть сток, используем фото из стока
+            stock_item_for_sale = StockItem.query.get(stock_id_from_form)
+            if stock_item_for_sale and stock_item_for_sale.photo:
+                photo_path = stock_item_for_sale.photo
 
         new_sale = Sale(photo=photo_path, product_name=product_name, reference=reference,
                         buy_price=buy_price, sell_price=sell_price,
-                        city_id=city_id, employee_id=employee_id, date=date)
+                        city_id=city_id, employee_id=employee_id, investor_id=investor_id, date=date)
         db.session.add(new_sale)
         db.session.commit()
 
-        # Добавление расходов
+        # Если продажа создана из стока, переносим расходы из стока
+        if stock_id_from_form:
+            stock_item_for_sale = StockItem.query.get(stock_id_from_form)
+            if stock_item_for_sale:
+                # Переносим расходы из стока в продажу
+                for stock_expense in stock_item_for_sale.expenses:
+                    sale_expense = Expense(
+                        sale_id=new_sale.id,
+                        expense_type_id=stock_expense.expense_type_id,
+                        amount=stock_expense.amount,
+                        comment=stock_expense.comment
+                    )
+                    db.session.add(sale_expense)
+        
+        # Добавление расходов из формы (могут быть дополнительные расходы или расходы для обычной продажи)
         expense_type_ids = request.form.getlist('expense_type_id')
         amounts = request.form.getlist('expense_amount')
         comments = request.form.getlist('expense_comment')
@@ -499,12 +628,42 @@ def add_sale():
             if et_id and amt:
                 expense = Expense(sale_id=new_sale.id, expense_type_id=int(et_id), amount=float(amt), comment=comment if comment else None)
                 db.session.add(expense)
-
+        
+        # Если продажа создана из стока, помечаем сток как проданный
+        if stock_id_from_form:
+            stock_item_for_sale = StockItem.query.get(stock_id_from_form)
+            if stock_item_for_sale:
+                stock_item_for_sale.sold = True
+        
         db.session.commit()
-        flash('Продажа добавлена!', 'success')
+        if stock_id_from_form:
+            flash('Продажа добавлена! Сток помечен как проданный.', 'success')
+        else:
+            flash('Продажа добавлена!', 'success')
+        
         return redirect(url_for('sales'))
 
-    return render_template('add_sale.html', cities=cities, expense_types=expense_types, employees=employees)
+    # Для GET запроса - автозаполняем форму данными из стока
+    stock_data = {}
+    if stock_item:
+        stock_data = {
+            'product_name': stock_item.product_name,
+            'reference': stock_item.reference or '',
+            'buy_price': stock_item.buy_price,
+            'sell_price': stock_item.expected_sell_price,
+            'city_id': stock_item.city_id,
+            'investor_id': stock_item.investor_id,
+            'photo': stock_item.photo,
+            'stock_id': stock_item.id,
+            'expenses': stock_item.expenses
+        }
+
+    return render_template('add_sale.html', 
+                         cities=cities, 
+                         expense_types=expense_types, 
+                         employees=employees, 
+                         investors=investors,
+                         stock_data=stock_data)
 
 
 @app.route('/add_stock', methods=['GET', 'POST'])
@@ -617,6 +776,7 @@ def edit_sale(sale_id):
     cities = City.query.all()
     expense_types = ExpenseType.query.all()
     employees = Employee.query.all()
+    investors = Investor.query.all()
 
     if request.method == 'POST':
         sale.product_name = request.form['product_name']
@@ -625,6 +785,7 @@ def edit_sale(sale_id):
         sale.sell_price = float(request.form['sell_price'])
         sale.city_id = int(request.form['city_id'])
         sale.employee_id = int(request.form['employee_id'])
+        sale.investor_id = int(request.form.get('investor_id')) if request.form.get('investor_id') else None
         date_str = request.form['date']
         sale.date = datetime.strptime(date_str, '%Y-%m-%d') if date_str else datetime.utcnow()
 
@@ -648,7 +809,7 @@ def edit_sale(sale_id):
         flash('Продажа обновлена!', 'success')
         return redirect(url_for('sales'))
 
-    return render_template('edit_sale.html', sale=sale, cities=cities, expense_types=expense_types, employees=employees)
+    return render_template('edit_sale.html', sale=sale, cities=cities, expense_types=expense_types, employees=employees, investors=investors)
 
 
 @app.route('/delete_sale/<int:sale_id>', methods=['POST'])

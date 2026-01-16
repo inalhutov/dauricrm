@@ -449,13 +449,23 @@
     </div>
     
     <form method="POST" enctype="multipart/form-data" id="addSaleForm">
+        {% if stock_data and stock_data.stock_id %}
+        <input type="hidden" name="stock_id" value="{{ stock_data.stock_id }}">
+        {% endif %}
+        
         <!-- Фотография -->
         <div class="photo-section">
             <label class="photo-label">Фотография</label>
             <div class="photo-upload-card" onclick="document.getElementById('photo-input').click()">
-                <div class="photo-upload-icon">📷</div>
-                <div class="photo-upload-text">Загрузить фото</div>
-                <img id="photo-preview" class="photo-preview" alt="Preview">
+                {% if stock_data and stock_data.photo %}
+                    <img src="{{ url_for('uploaded_file', filename=stock_data.photo) }}" id="photo-preview" class="photo-preview active" alt="Preview">
+                    <div class="photo-upload-text" style="display: none;">Загрузить фото</div>
+                    <div class="photo-upload-icon" style="display: none;">📷</div>
+                {% else %}
+                    <div class="photo-upload-icon">📷</div>
+                    <div class="photo-upload-text">Загрузить фото</div>
+                    <img id="photo-preview" class="photo-preview" alt="Preview">
+                {% endif %}
             </div>
             <input type="file" name="photo" id="photo-input" accept="image/*" class="hidden-input">
         </div>
@@ -465,7 +475,7 @@
             <div class="field-input-card">
                 <label class="field-label">Наименование</label>
                 <div class="field-input-wrapper">
-                    <input type="text" name="product_name" required placeholder="Введи наименование">
+                    <input type="text" name="product_name" value="{% if stock_data %}{{ stock_data.product_name }}{% endif %}" required placeholder="Введи наименование">
                 </div>
             </div>
         </div>
@@ -475,7 +485,22 @@
             <div class="field-input-card">
                 <label class="field-label">Reference</label>
                 <div class="field-input-wrapper">
-                    <input type="text" name="reference" placeholder="Введи Reference">
+                    <input type="text" name="reference" value="{% if stock_data %}{{ stock_data.reference }}{% endif %}" placeholder="Введи Reference">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Инвестор -->
+        <div class="form-field">
+            <div class="field-input-card">
+                <label class="field-label">Инвестор</label>
+                <div class="field-input-wrapper">
+                    <select name="investor_id">
+                        <option value="">Выбери инвестора</option>
+                        {% for investor in investors %}
+                            <option value="{{ investor.id }}" {% if stock_data and stock_data.investor_id == investor.id %}selected{% endif %}>{{ investor.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
         </div>
@@ -488,7 +513,7 @@
                     <select name="city_id" required>
                         <option value="">Выбери город</option>
                         {% for city in cities %}
-                            <option value="{{ city.id }}">{{ city.name }}</option>
+                            <option value="{{ city.id }}" {% if stock_data and stock_data.city_id == city.id %}selected{% endif %}>{{ city.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -500,7 +525,7 @@
             <div class="field-input-card">
                 <label class="field-label">Покупка</label>
                 <div class="field-input-wrapper">
-                    <input type="number" step="0.01" name="buy_price" required placeholder="Введи цену покупки">
+                    <input type="number" step="0.01" name="buy_price" value="{% if stock_data %}{{ stock_data.buy_price }}{% endif %}" required placeholder="Введи цену покупки">
                 </div>
             </div>
         </div>
@@ -510,7 +535,7 @@
             <div class="field-input-card">
                 <label class="field-label">Продажа</label>
                 <div class="field-input-wrapper">
-                    <input type="number" step="0.01" name="sell_price" required placeholder="Введи цену продажи">
+                    <input type="number" step="0.01" name="sell_price" value="{% if stock_data %}{{ stock_data.sell_price }}{% endif %}" required placeholder="Введи цену продажи">
                 </div>
             </div>
         </div>
@@ -523,8 +548,18 @@
                         <span>Расход</span>
                         <span style="font-size: 16px; color: #333; font-weight: 500;" id="total-expense">0$</span>
                     </div>
+                    {% if stock_data and stock_data.expenses %}
+                    <div style="padding: 10px 20px; background: rgba(181, 131, 88, 0.1); border-radius: 10px; margin: 10px 20px; font-size: 14px; color: #666;">
+                        <strong>Расходы из стока (будут добавлены автоматически):</strong>
+                        <ul style="margin: 5px 0 0 20px; padding: 0;">
+                            {% for expense in stock_data.expenses %}
+                            <li>{{ expense.expense_type.name }}: {{ "%.0f"|format(expense.amount) }}$</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                     <div class="expense-list" id="expenses-list">
-                        <!-- Список расходов будет добавляться сюда -->
+                        <!-- Список дополнительных расходов будет добавляться сюда -->
                     </div>
                     <div style="text-align: center;">
                         <button type="button" class="add-expense-btn" onclick="openExpenseModal()">+</button>
@@ -645,6 +680,20 @@
                 <button type="submit" class="collapsible-form-btn">Добавить сотрудника</button>
             </form>
         </div>
+        
+        <div class="form-toggle" onclick="toggleForm('investor-form')">
+            Добавить нового инвестора
+        </div>
+        <div id="investor-form" class="collapsible-form">
+            <form method="POST" action="{{ url_for('add_investor') }}">
+                <div class="field-input-card">
+                    <div class="field-input-wrapper">
+                        <input type="text" name="name" required placeholder="Имя инвестора">
+                    </div>
+                </div>
+                <button type="submit" class="collapsible-form-btn">Добавить инвестора</button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -666,6 +715,8 @@
     });
     
     // Массив для хранения расходов
+    // Примечание: расходы из стока будут добавлены автоматически в бэкенде
+    // Здесь хранятся только дополнительные расходы, которые пользователь добавит вручную
     let expenses = [];
     
     // Открытие модального окна
@@ -786,7 +837,16 @@
     
     // Инициализация при загрузке
     document.addEventListener('DOMContentLoaded', function() {
+        renderExpenses();
         updateTotalExpense();
+        
+        // Если есть фото из стока, показываем его
+        {% if stock_data and stock_data.photo %}
+        const preview = document.getElementById('photo-preview');
+        if (preview && !preview.classList.contains('active')) {
+            preview.classList.add('active');
+        }
+        {% endif %}
     });
 </script>
 {% endblock %}
