@@ -126,6 +126,13 @@
             border-top: 1px solid #f0f0f0;
         }
         
+        .nav-menu .nav-divider {
+            height: 1px;
+            background: #e0e0e000;
+            margin: 10px 25px;
+            border: none;
+        }
+        
         /* Оверлей для закрытия меню */
         .nav-overlay {
             position: fixed;
@@ -179,6 +186,13 @@
             
             .nav-menu a:hover {
                 background: #f5f5f0;
+            }
+            
+            .nav-menu .nav-divider {
+                width: 1px;
+                height: 20px;
+                margin: 0 10px;
+                background: #e0e0e0;
             }
         }
         
@@ -243,11 +257,13 @@
     <!-- Навигационное меню -->
     <nav class="nav-menu" id="navMenu">
         <a href="{{ url_for('main') }}">Главная</a>
-        <a href="{{ url_for('dashboard') }}">Продажи</a>
-        <a href="{{ url_for('all_sales_summary') }}">Все продажи</a>
-        <a href="{{ url_for('sales') }}">Подробнее</a>
         <a href="{{ url_for('add_sale') }}">Добавить продажу</a>
+        <a href="{{ url_for('add_stock') }}">Добавить сток</a>
         <a href="{{ url_for('stats') }}">Расходы</a>
+        <a href="{{ url_for('dashboard') }}">Продажи сейчас</a>
+        <div class="nav-divider"></div>
+        <a href="{{ url_for('stock_investors') }}">Отчет по инвесторам</a>
+        <a href="{{ url_for('all_sales_summary') }}">Отчет по продажам</a>
     </nav>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
